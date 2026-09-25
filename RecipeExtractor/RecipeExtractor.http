@@ -1,0 +1,10 @@
+### Extract recipe
+POST http://localhost:8081/recipes/extract
+Content-Type: multipart/form-data; boundary=----RecipeBoundary
+
+------RecipeBoundary
+Content-Disposition: form-data; name="image"; filename="20260925_102041.jpg"
+Content-Type: image/jpeg
+
+< C:\workspace\recipe-images\20260925_102048.jpg
+------RecipeBoundary--
