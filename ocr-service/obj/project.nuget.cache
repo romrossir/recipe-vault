@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "dgSpecHash": "94Ad1qufOA0=",
+  "success": true,
+  "projectFilePath": "C:\\workspace\\recipe-vault\\ocr-service\\ocr-service.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\rrossi\\.nuget\\packages\\tesseract\\5.2.0\\tesseract.5.2.0.nupkg.sha512"
+  ],
+  "logs": []
+}
