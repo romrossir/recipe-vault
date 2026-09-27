@@ -1,0 +1,193 @@
+@RecipeApi_HostAddress = http://localhost:5015
+
+### ========================================
+### GET all recipes
+### ========================================
+
+GET {{RecipeApi_HostAddress}}/api/recipes
+Accept: application/json
+
+
+### ========================================
+### GET recipe by ID
+### ========================================
+
+GET {{RecipeApi_HostAddress}}/api/recipes/1
+Accept: application/json
+
+
+### ========================================
+### GET non-existing recipe
+### Expected: 404 Not Found
+### ========================================
+
+GET {{RecipeApi_HostAddress}}/api/recipes/999
+Accept: application/json
+
+
+### ========================================
+### CREATE recipe
+### Expected: 201 Created
+### ========================================
+
+POST {{RecipeApi_HostAddress}}/api/recipes
+Content-Type: application/json
+
+{
+  "title": "Mini crêpes",
+  "ingredients": [
+    {
+      "name": "farine",
+      "quantity": "250",
+      "unit": "g"
+    },
+    {
+      "name": "œufs",
+      "quantity": "3",
+      "unit": null
+    },
+    {
+      "name": "lait",
+      "quantity": "50",
+      "unit": "cl"
+    }
+  ],
+  "steps": [
+    "Mélanger la farine et les œufs.",
+    "Ajouter progressivement le lait.",
+    "Laisser reposer la pâte.",
+    "Faire cuire les crêpes dans une poêle chaude."
+  ]
+}
+
+
+### ========================================
+### CREATE another recipe
+### Expected: 201 Created
+### ========================================
+
+POST {{RecipeApi_HostAddress}}/api/recipes
+Content-Type: application/json
+
+{
+  "title": "Gâteau au chocolat",
+  "ingredients": [
+    {
+      "name": "chocolat noir",
+      "quantity": "200",
+      "unit": "g"
+    },
+    {
+      "name": "beurre",
+      "quantity": "150",
+      "unit": "g"
+    },
+    {
+      "name": "œufs",
+      "quantity": "4",
+      "unit": null
+    }
+  ],
+  "steps": [
+    "Faire fondre le chocolat avec le beurre.",
+    "Ajouter les œufs.",
+    "Verser dans un moule.",
+    "Cuire au four."
+  ]
+}
+
+
+### ========================================
+### CREATE invalid recipe
+### Expected: 400 Bad Request
+### ========================================
+
+POST {{RecipeApi_HostAddress}}/api/recipes
+Content-Type: application/json
+
+{
+  "title": "",
+  "ingredients": [],
+  "steps": []
+}
+
+
+### ========================================
+### UPDATE recipe
+### Expected: 204 No Content
+### ========================================
+
+PUT {{RecipeApi_HostAddress}}/api/recipes/1
+Content-Type: application/json
+
+{
+  "title": "Mini crêpes au chocolat",
+  "ingredients": [
+    {
+      "name": "farine",
+      "quantity": "250",
+      "unit": "g"
+    },
+    {
+      "name": "œufs",
+      "quantity": "3",
+      "unit": null
+    },
+    {
+      "name": "lait",
+      "quantity": "50",
+      "unit": "cl"
+    },
+    {
+      "name": "chocolat noir",
+      "quantity": "100",
+      "unit": "g"
+    }
+  ],
+  "steps": [
+    "Mélanger la farine et les œufs.",
+    "Ajouter progressivement le lait.",
+    "Ajouter le chocolat fondu.",
+    "Faire cuire les crêpes."
+  ]
+}
+
+
+### ========================================
+### UPDATE non-existing recipe
+### Expected: 404 Not Found
+### ========================================
+
+PUT {{RecipeApi_HostAddress}}/api/recipes/999
+Content-Type: application/json
+
+{
+  "title": "Recipe inexistante",
+  "ingredients": [],
+  "steps": []
+}
+
+
+### ========================================
+### DELETE recipe
+### Expected: 204 No Content
+### ========================================
+
+DELETE {{RecipeApi_HostAddress}}/api/recipes/1
+
+
+### ========================================
+### DELETE non-existing recipe
+### Expected: 404 Not Found
+### ========================================
+
+DELETE {{RecipeApi_HostAddress}}/api/recipes/999
+
+
+### ========================================
+### Verify recipe was deleted
+### Expected: 404 Not Found
+### ========================================
+
+GET {{RecipeApi_HostAddress}}/api/recipes/1
+Accept: application/json
