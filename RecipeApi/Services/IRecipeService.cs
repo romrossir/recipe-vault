@@ -23,4 +23,9 @@ public interface IRecipeService
     Task<bool> DeleteAsync(
         string id,
         CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<(Recipe Recipe, double Score)>> SearchAsync(
+        float[] queryVector,
+        int limit,
+        CancellationToken cancellationToken = default);
 }

@@ -191,3 +191,21 @@ DELETE {{RecipeApi_HostAddress}}/api/recipes/999
 
 GET {{RecipeApi_HostAddress}}/api/recipes/1
 Accept: application/json
+
+### ========================================
+POST {{RecipeApi_HostAddress}}/api/recipes/embedding-test
+Content-Type: application/json
+
+"dessert au chocolat rapide"
+
+### Semantic search
+
+GET {{RecipeApi_HostAddress}}/api/recipes/search?q=italien&limit=50
+Accept: application/json
+
+### ========================================
+### GET recipe by ID
+### ========================================
+
+GET {{RecipeApi_HostAddress}}/api/recipes/6ababdb1f4719fbba2f0ce61
+Accept: application/json

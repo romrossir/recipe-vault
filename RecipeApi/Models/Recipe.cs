@@ -14,4 +14,8 @@ public sealed class Recipe
     public List<Ingredient> Ingredients { get; set; } = [];
 
     public List<string> Steps { get; set; } = [];
+
+    public string? SearchText { get; set; }
+
+    public float[]? Embedding { get; set; }
 }
