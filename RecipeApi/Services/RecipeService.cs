@@ -1,59 +1,68 @@
+using MongoDB.Driver;
 using RecipeApi.Models;
 
 namespace RecipeApi.Services;
 
 public sealed class RecipeService : IRecipeService
 {
-    private readonly List<Recipe> _recipes = [];
-    private int _nextId = 1;
+    private readonly IMongoCollection<Recipe> _recipes;
 
-    public IReadOnlyCollection<Recipe> GetAll()
+    public RecipeService(IMongoCollection<Recipe> recipes)
     {
-        return _recipes;
+        _recipes = recipes;
     }
 
-    public Recipe? GetById(int id)
+    public async Task<IReadOnlyCollection<Recipe>> GetAllAsync(
+        CancellationToken cancellationToken = default)
     {
-        return _recipes.FirstOrDefault(r => r.Id == id);
+        return await _recipes
+            .Find(FilterDefinition<Recipe>.Empty)
+            .ToListAsync(cancellationToken);
     }
 
-    public Recipe Create(Recipe recipe)
+    public async Task<Recipe?> GetByIdAsync(
+        string id,
+        CancellationToken cancellationToken = default)
     {
-        recipe.Id = _nextId++;
+        return await _recipes
+            .Find(r => r.Id == id)
+            .FirstOrDefaultAsync(cancellationToken);
+    }
 
-        _recipes.Add(recipe);
+    public async Task<Recipe> CreateAsync(
+        Recipe recipe,
+        CancellationToken cancellationToken = default)
+    {
+        await _recipes.InsertOneAsync(
+            recipe,
+            cancellationToken: cancellationToken);
 
         return recipe;
     }
 
-    public bool Update(int id, Recipe recipe)
+    public async Task<bool> UpdateAsync(
+        string id,
+        Recipe recipe,
+        CancellationToken cancellationToken = default)
     {
-        var existing = GetById(id);
+        recipe.Id = id;
 
-        if (existing is null)
-        {
-            return false;
-        }
+        var result = await _recipes.ReplaceOneAsync(
+            r => r.Id == id,
+            recipe,
+            cancellationToken: cancellationToken);
 
-        existing.Title = recipe.Title;
-
-        existing.Ingredients = recipe.Ingredients;
-        existing.Steps = recipe.Steps;
-
-        return true;
+        return result.MatchedCount > 0;
     }
 
-    public bool Delete(int id)
+    public async Task<bool> DeleteAsync(
+        string id,
+        CancellationToken cancellationToken = default)
     {
-        var recipe = GetById(id);
+        var result = await _recipes.DeleteOneAsync(
+            r => r.Id == id,
+            cancellationToken);
 
-        if (recipe is null)
-        {
-            return false;
-        }
-
-        _recipes.Remove(recipe);
-
-        return true;
+        return result.DeletedCount > 0;
     }
 }

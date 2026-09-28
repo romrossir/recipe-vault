@@ -16,22 +16,24 @@ public sealed class RecipesController : ControllerBase
         _recipeService = recipeService;
     }
 
-    // GET: api/recipes
     [HttpGet]
-    public ActionResult<IEnumerable<RecipeResponse>> GetAll()
+    public async Task<ActionResult<IEnumerable<RecipeResponse>>> GetAll(
+        CancellationToken cancellationToken)
     {
-        var recipes = _recipeService
-            .GetAll()
-            .Select(ToResponse);
+        var recipes = await _recipeService.GetAllAsync(
+            cancellationToken);
 
-        return Ok(recipes);
+        return Ok(recipes.Select(ToResponse));
     }
 
-    // GET: api/recipes/1
-    [HttpGet("{id:int}")]
-    public ActionResult<RecipeResponse> GetById(int id)
+    [HttpGet("{id}")]
+    public async Task<ActionResult<RecipeResponse>> GetById(
+        string id,
+        CancellationToken cancellationToken)
     {
-        var recipe = _recipeService.GetById(id);
+        var recipe = await _recipeService.GetByIdAsync(
+            id,
+            cancellationToken);
 
         if (recipe is null)
         {
@@ -41,10 +43,10 @@ public sealed class RecipesController : ControllerBase
         return Ok(ToResponse(recipe));
     }
 
-    // POST: api/recipes
     [HttpPost]
-    public ActionResult<RecipeResponse> Create(
-        CreateRecipeRequest request)
+    public async Task<ActionResult<RecipeResponse>> Create(
+        CreateRecipeRequest request,
+        CancellationToken cancellationToken)
     {
         var recipe = new Recipe
         {
@@ -62,7 +64,9 @@ public sealed class RecipesController : ControllerBase
             Steps = request.Steps.ToList()
         };
 
-        var createdRecipe = _recipeService.Create(recipe);
+        var createdRecipe = await _recipeService.CreateAsync(
+            recipe,
+            cancellationToken);
 
         var response = ToResponse(createdRecipe);
 
@@ -72,11 +76,11 @@ public sealed class RecipesController : ControllerBase
             response);
     }
 
-    // PUT: api/recipes/1
-    [HttpPut("{id:int}")]
-    public IActionResult Update(
-        int id,
-        UpdateRecipeRequest request)
+    [HttpPut("{id}")]
+    public async Task<IActionResult> Update(
+        string id,
+        UpdateRecipeRequest request,
+        CancellationToken cancellationToken)
     {
         var recipe = new Recipe
         {
@@ -95,7 +99,10 @@ public sealed class RecipesController : ControllerBase
             Steps = request.Steps.ToList()
         };
 
-        var updated = _recipeService.Update(id, recipe);
+        var updated = await _recipeService.UpdateAsync(
+            id,
+            recipe,
+            cancellationToken);
 
         if (!updated)
         {
@@ -105,11 +112,14 @@ public sealed class RecipesController : ControllerBase
         return NoContent();
     }
 
-    // DELETE: api/recipes/1
-    [HttpDelete("{id:int}")]
-    public IActionResult Delete(int id)
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> Delete(
+        string id,
+        CancellationToken cancellationToken)
     {
-        var deleted = _recipeService.Delete(id);
+        var deleted = await _recipeService.DeleteAsync(
+            id,
+            cancellationToken);
 
         if (!deleted)
         {
@@ -122,7 +132,7 @@ public sealed class RecipesController : ControllerBase
     private static RecipeResponse ToResponse(Recipe recipe)
     {
         return new RecipeResponse(
-            recipe.Id,
+            recipe.Id!,
             recipe.Title,
 
             recipe.Ingredients

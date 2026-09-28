@@ -4,13 +4,23 @@ namespace RecipeApi.Services;
 
 public interface IRecipeService
 {
-    IReadOnlyCollection<Recipe> GetAll();
+    Task<IReadOnlyCollection<Recipe>> GetAllAsync(
+        CancellationToken cancellationToken = default);
 
-    Recipe? GetById(int id);
+    Task<Recipe?> GetByIdAsync(
+        string id,
+        CancellationToken cancellationToken = default);
 
-    Recipe Create(Recipe recipe);
+    Task<Recipe> CreateAsync(
+        Recipe recipe,
+        CancellationToken cancellationToken = default);
 
-    bool Update(int id, Recipe recipe);
+    Task<bool> UpdateAsync(
+        string id,
+        Recipe recipe,
+        CancellationToken cancellationToken = default);
 
-    bool Delete(int id);
+    Task<bool> DeleteAsync(
+        string id,
+        CancellationToken cancellationToken = default);
 }
