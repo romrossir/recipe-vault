@@ -3,6 +3,7 @@ namespace RecipeApi.Services;
 public interface ILlmService
 {
     Task<string> GenerateAsync(
-        string prompt,
+        string systemPrompt,
+        string userMessage,
         CancellationToken cancellationToken = default);
 }

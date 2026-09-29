@@ -18,40 +18,48 @@ public sealed class OllamaLlmService : ILlmService
     }
 
     public async Task<string> GenerateAsync(
-        string prompt,
+        string systemPrompt,
+        string userMessage,
         CancellationToken cancellationToken = default)
     {
-        var request = new OllamaGenerateRequest(
+        var request = new OllamaChatRequest(
             _settings.LlmModel,
-            prompt,
+            [
+                new OllamaChatMessage("system", systemPrompt),
+                new OllamaChatMessage("user", userMessage)
+            ],
             false);
 
         var response = await _httpClient.PostAsJsonAsync(
-            "/api/generate",
+            "/api/chat",
             request,
             cancellationToken);
 
         response.EnsureSuccessStatusCode();
 
         var result = await response.Content
-            .ReadFromJsonAsync<OllamaGenerateResponse>(
+            .ReadFromJsonAsync<OllamaChatResponse>(
                 cancellationToken);
 
-        if (result is null)
+        if (result?.Message is null)
         {
             throw new InvalidOperationException(
                 "Ollama returned no response.");
         }
 
-        return result.Response;
+        return result.Message.Content;
     }
 
-    private sealed record OllamaGenerateRequest(
+    private sealed record OllamaChatRequest(
         string Model,
-        string Prompt,
+        List<OllamaChatMessage> Messages,
         bool Stream);
 
-    private sealed record OllamaGenerateResponse(
-        [property: JsonPropertyName("response")]
-        string Response);
+    private sealed record OllamaChatMessage(
+        string Role,
+        string Content);
+
+    private sealed record OllamaChatResponse(
+        [property: JsonPropertyName("message")]
+        OllamaChatMessage? Message);
 }

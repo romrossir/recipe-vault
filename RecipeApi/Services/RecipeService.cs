@@ -15,10 +15,14 @@ public sealed class RecipeService : IRecipeService
     }
 
     public async Task<IReadOnlyCollection<Recipe>> GetAllAsync(
+        int skip,
+        int limit,
         CancellationToken cancellationToken = default)
     {
         return await _recipes
             .Find(FilterDefinition<Recipe>.Empty)
+            .Skip(skip)
+            .Limit(limit)
             .ToListAsync(cancellationToken);
     }
 

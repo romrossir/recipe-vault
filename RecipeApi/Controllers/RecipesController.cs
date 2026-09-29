@@ -25,9 +25,23 @@ public sealed class RecipesController : ControllerBase
 
     [HttpGet]
     public async Task<ActionResult<IEnumerable<RecipeResponse>>> GetAll(
-        CancellationToken cancellationToken)
+        [FromQuery] int skip = 0,
+        [FromQuery] int limit = 20,
+        CancellationToken cancellationToken = default)
     {
+        if (skip < 0)
+        {
+            return BadRequest("Skip must be non-negative.");
+        }
+
+        if (limit is < 1 or > 100)
+        {
+            return BadRequest("Limit must be between 1 and 100.");
+        }
+
         var recipes = await _recipeService.GetAllAsync(
+            skip,
+            limit,
             cancellationToken);
 
         return Ok(recipes.Select(ToResponse));
@@ -255,7 +269,7 @@ public sealed class RecipesController : ControllerBase
             {string.Join("\n", result.Recipe.Steps)}
             """));
 
-        var prompt = $"""
+        var systemPrompt = """
         Tu es un assistant spécialisé dans les recettes de cuisine.
 
         Réponds à la question uniquement à partir des recettes
@@ -266,7 +280,9 @@ public sealed class RecipesController : ControllerBase
 
         Si le contexte ne permet pas de répondre à la question,
         indique-le clairement.
+        """;
 
+        var userMessage = $"""
         Question :
         {request.Question}
 
@@ -275,7 +291,8 @@ public sealed class RecipesController : ControllerBase
         """;
 
         var answer = await _llmService.GenerateAsync(
-            prompt,
+            systemPrompt,
+            userMessage,
             cancellationToken);
 
         var recipes = results

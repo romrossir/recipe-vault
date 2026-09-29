@@ -5,6 +5,8 @@ namespace RecipeApi.Services;
 public interface IRecipeService
 {
     Task<IReadOnlyCollection<Recipe>> GetAllAsync(
+        int skip,
+        int limit,
         CancellationToken cancellationToken = default);
 
     Task<Recipe?> GetByIdAsync(
