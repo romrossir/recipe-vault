@@ -1,15 +1,20 @@
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
+using RecipeApi.Data;
 
 namespace RecipeApi.Services;
 
 public sealed class OllamaEmbeddingService : IEmbeddingService
 {
     private readonly HttpClient _httpClient;
+    private readonly OllamaSettings _settings;
 
-    public OllamaEmbeddingService(HttpClient httpClient)
+    public OllamaEmbeddingService(
+        HttpClient httpClient,
+        OllamaSettings settings)
     {
         _httpClient = httpClient;
+        _settings = settings;
     }
 
     public async Task<float[]> GenerateAsync(
@@ -17,7 +22,7 @@ public sealed class OllamaEmbeddingService : IEmbeddingService
         CancellationToken cancellationToken = default)
     {
         var request = new OllamaEmbeddingRequest(
-            "qwen3-embedding",
+            _settings.EmbeddingModel,
             text);
 
         var response = await _httpClient.PostAsJsonAsync(

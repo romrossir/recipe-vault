@@ -51,7 +51,6 @@ public sealed class RecipesController : ControllerBase
     }
 
     [HttpPost]
-    [HttpPost]
     public async Task<ActionResult<RecipeResponse>> Create(
     CreateRecipeRequest request,
     CancellationToken cancellationToken)

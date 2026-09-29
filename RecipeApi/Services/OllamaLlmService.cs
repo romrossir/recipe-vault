@@ -1,15 +1,20 @@
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
+using RecipeApi.Data;
 
 namespace RecipeApi.Services;
 
 public sealed class OllamaLlmService : ILlmService
 {
     private readonly HttpClient _httpClient;
+    private readonly OllamaSettings _settings;
 
-    public OllamaLlmService(HttpClient httpClient)
+    public OllamaLlmService(
+        HttpClient httpClient,
+        OllamaSettings settings)
     {
         _httpClient = httpClient;
+        _settings = settings;
     }
 
     public async Task<string> GenerateAsync(
@@ -17,7 +22,7 @@ public sealed class OllamaLlmService : ILlmService
         CancellationToken cancellationToken = default)
     {
         var request = new OllamaGenerateRequest(
-            "llama3.2",
+            _settings.LlmModel,
             prompt,
             false);
 

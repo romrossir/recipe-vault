@@ -1,5 +1,3 @@
-using RecipeApi.Dtos;
-
 namespace RecipeApi.Dtos;
 
 public sealed record RecipeSearchResponse(
