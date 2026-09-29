@@ -1,32 +1,12 @@
-using MongoDB.Driver;
-using RecipeApi.Data;
-using RecipeApi.Models;
+using RecipeApi.Extensions;
 using RecipeApi.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
-
-var mongoSettings = builder.Configuration.GetSection("MongoDb").Get<MongoDbSettings>()
-    ?? throw new InvalidOperationException("MongoDb settings are not configured.");
-var mongoClient = new MongoClient(mongoSettings.ConnectionString);
-var mongoDatabase = mongoClient.GetDatabase(mongoSettings.DatabaseName);
-var recipesCollection = mongoDatabase.GetCollection<Recipe>(mongoSettings.RecipesCollectionName);
-
-builder.Services.AddSingleton(mongoSettings);
-builder.Services.AddSingleton(recipesCollection);
-builder.Services.AddScoped<IRecipeService, RecipeService>();
-builder.Services.AddScoped<RecipeImporter>();
-
-var ollamaSettings = builder.Configuration.GetSection("Ollama").Get<OllamaSettings>()
-    ?? throw new InvalidOperationException("Ollama settings are not configured.");
-
-builder.Services.AddSingleton(ollamaSettings);
-builder.Services.AddHttpClient<IEmbeddingService, OllamaEmbeddingService>(
-    client => client.BaseAddress = new Uri(ollamaSettings.BaseUrl));
-builder.Services.AddHttpClient<ILlmService, OllamaLlmService>(
-    client => client.BaseAddress = new Uri(ollamaSettings.BaseUrl));
+builder.Services.AddMongoDb(builder.Configuration);
+builder.Services.AddOllama(builder.Configuration);
 
 var app = builder.Build();
 
