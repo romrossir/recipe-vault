@@ -41,6 +41,12 @@ builder.Services.AddHttpClient<IEmbeddingService, OllamaEmbeddingService>(
         client.BaseAddress = new Uri("http://localhost:11434");
     });
 
+builder.Services.AddHttpClient<ILlmService, OllamaLlmService>(
+    client =>
+    {
+        client.BaseAddress = new Uri("http://localhost:11434");
+    });
+
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())

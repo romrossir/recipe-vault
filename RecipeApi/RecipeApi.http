@@ -200,7 +200,7 @@ Content-Type: application/json
 
 ### Semantic search
 
-GET {{RecipeApi_HostAddress}}/api/recipes/search?q=italien&limit=50
+GET {{RecipeApi_HostAddress}}/api/recipes/search?q=Je%20cherche%20une%20recette%20de%20pavlova&limit=50
 Accept: application/json
 
 ### ========================================
@@ -208,4 +208,35 @@ Accept: application/json
 ### ========================================
 
 GET {{RecipeApi_HostAddress}}/api/recipes/6ababdb1f4719fbba2f0ce61
+Accept: application/json
+
+### RAG - dessert au chocolat
+POST {{RecipeApi_HostAddress}}/api/recipes/ask
+Content-Type: application/json
+Accept: application/json
+
+{
+  "question": "Je cherche une recette de pavlova"
+}
+
+### RAG - goûter aux fruits
+POST {{RecipeApi_HostAddress}}/api/recipes/ask
+Content-Type: application/json
+Accept: application/json
+
+{
+  "question": "Je cherche quelque chose aux fruits pour le goûter"
+}
+
+### RAG - légumes
+POST {{RecipeApi_HostAddress}}/api/recipes/ask
+Content-Type: application/json
+Accept: application/json
+
+{
+  "question": "Je cherche une recette avec beaucoup de fruits"
+}
+
+### Search - titre exact
+GET {{RecipeApi_HostAddress}}/api/recipes/search?q=La%20pavlova%20poire%20et%20thé&limit=10
 Accept: application/json

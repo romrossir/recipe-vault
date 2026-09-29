@@ -11,13 +11,16 @@ public sealed class RecipesController : ControllerBase
 {
     private readonly IRecipeService _recipeService;
     private readonly IEmbeddingService _embeddingService;
+    private readonly ILlmService _llmService;
 
     public RecipesController(
         IRecipeService recipeService,
-        IEmbeddingService embeddingService)
+        IEmbeddingService embeddingService,
+        ILlmService llmService)
     {
         _recipeService = recipeService;
         _embeddingService = embeddingService;
+        _llmService = llmService;
     }
 
     [HttpGet]
@@ -222,5 +225,76 @@ public sealed class RecipesController : ControllerBase
             .ToList();
 
         return Ok(response);
+    }
+
+    [HttpPost("ask")]
+    public async Task<ActionResult<AskRecipeResponse>> Ask(
+        [FromBody] AskRecipeRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var queryVector = await _embeddingService.GenerateAsync(
+            request.Question,
+            cancellationToken);
+
+        var results = await _recipeService.SearchAsync(
+            queryVector,
+            5,
+            cancellationToken);
+
+        var context = string.Join(
+            "\n\n--- RECIPE ---\n\n",
+            results.Select(result => $"""
+            Title: {result.Recipe.Title}
+
+            Ingredients:
+            {string.Join(
+                    "\n",
+                    result.Recipe.Ingredients.Select(i =>
+                        $"- {i.Quantity} {i.Unit} {i.Name}".Trim()))}
+
+            Steps:
+            {string.Join("\n", result.Recipe.Steps)}
+            """));
+
+        var prompt = $"""
+        Tu es un assistant spécialisé dans les recettes de cuisine.
+
+        Réponds à la question uniquement à partir des recettes
+        présentes dans le contexte.
+
+        Ne crée pas d'ingrédient, de recette ou d'information
+        qui n'est pas présente dans le contexte.
+
+        Si le contexte ne permet pas de répondre à la question,
+        indique-le clairement.
+
+        Question :
+        {request.Question}
+
+        Contexte :
+        {context}
+        """;
+
+        var answer = await _llmService.GenerateAsync(
+            prompt,
+            cancellationToken);
+
+        var recipes = results
+            .Select(result => new RecipeSearchResponse(
+                result.Recipe.Id!,
+                result.Recipe.Title,
+                result.Recipe.Ingredients
+                    .Select(i => new IngredientDto(
+                        i.Name,
+                        i.Quantity,
+                        i.Unit))
+                    .ToList(),
+                result.Recipe.Steps,
+                result.Score))
+            .ToList();
+
+        return Ok(new AskRecipeResponse(
+            answer,
+            recipes));
     }
 }

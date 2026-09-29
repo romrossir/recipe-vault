@@ -8,22 +8,16 @@ public static class RecipeSearchTextBuilder
     {
         var ingredients = string.Join(
             "\n",
-            recipe.Ingredients.Select(i =>
-                $"{i.Quantity} {i.Unit} {i.Name}".Trim()));
-
-        var steps = string.Join(
-            "\n",
-            recipe.Steps);
+            recipe.Ingredients
+                .Select(i => i.Name)
+                .Where(name => !string.IsNullOrWhiteSpace(name)));
 
         return $"""
-            Title:
-            {recipe.Title}
+        Title:
+        {recipe.Title}
 
-            Ingredients:
-            {ingredients}
-
-            Steps:
-            {steps}
-            """;
+        Ingredients:
+        {ingredients}
+        """;
     }
 }
