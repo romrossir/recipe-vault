@@ -14,7 +14,11 @@ public static class OllamaExtensions
         services.AddHttpClient<IEmbeddingService, OllamaEmbeddingService>(
             client => client.BaseAddress = new Uri(settings.BaseUrl));
         services.AddHttpClient<ILlmService, OllamaLlmService>(
-            client => client.BaseAddress = new Uri(settings.BaseUrl));
+            client =>
+            {
+                client.BaseAddress = new Uri(settings.BaseUrl);
+                client.Timeout = TimeSpan.FromMinutes(5);
+            });
 
         return services;
     }

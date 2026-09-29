@@ -103,6 +103,7 @@ public sealed class RecipeService : IRecipeService
             .Select(document =>
             {
                 var score = document["Score"].AsDouble;
+                document.Remove("Score");
 
                 var recipe = BsonSerializer.Deserialize<Recipe>(document);
 

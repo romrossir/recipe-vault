@@ -34,16 +34,19 @@ public sealed class RecipeImporter
             return;
         }
 
-        _logger.LogInformation("Found {Count} recipes.", recipes.Count);
+        var valid = recipes.Where(r => r.Ingredients.Count > 0).ToList();
+        var skipped = recipes.Count - valid.Count;
 
-        foreach (var recipe in recipes)
+        _logger.LogInformation("Found {Total} recipes, skipping {Skipped} without ingredients.", recipes.Count, skipped);
+
+        foreach (var recipe in valid)
         {
             _logger.LogInformation("Embedding: {Title}", recipe.Title);
             recipe.SearchText = RecipeSearchTextBuilder.Build(recipe);
             recipe.Embedding = await _embeddingService.GenerateAsync(recipe.SearchText, cancellationToken);
         }
 
-        await _recipes.InsertManyAsync(recipes, cancellationToken: cancellationToken);
-        _logger.LogInformation("Imported {Count} recipes.", recipes.Count);
+        await _recipes.InsertManyAsync(valid, cancellationToken: cancellationToken);
+        _logger.LogInformation("Imported {Count} recipes.", valid.Count);
     }
 }
