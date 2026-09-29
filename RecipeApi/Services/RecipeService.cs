@@ -22,10 +22,7 @@ public sealed class RecipeService : IRecipeService
         _settings = settings;
     }
 
-    public async Task<IReadOnlyCollection<Recipe>> GetAllAsync(
-        int skip,
-        int limit,
-        CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyCollection<Recipe>> GetAllAsync(int skip, int limit, CancellationToken cancellationToken = default)
     {
         return await _recipes
             .Find(FilterDefinition<Recipe>.Empty)
@@ -34,60 +31,42 @@ public sealed class RecipeService : IRecipeService
             .ToListAsync(cancellationToken);
     }
 
-    public async Task<Recipe?> GetByIdAsync(
-        string id,
-        CancellationToken cancellationToken = default)
+    public async Task<Recipe?> GetByIdAsync(string id, CancellationToken cancellationToken = default)
     {
         return await _recipes
             .Find(r => r.Id == id)
             .FirstOrDefaultAsync(cancellationToken);
     }
 
-    public async Task<Recipe> CreateAsync(
-        Recipe recipe,
-        CancellationToken cancellationToken = default)
+    public async Task<Recipe> CreateAsync(Recipe recipe, CancellationToken cancellationToken = default)
     {
         await GenerateEmbeddingAsync(recipe, cancellationToken);
 
-        await _recipes.InsertOneAsync(
-            recipe,
-            cancellationToken: cancellationToken);
+        await _recipes.InsertOneAsync(recipe, cancellationToken: cancellationToken);
 
         return recipe;
     }
 
-    public async Task<bool> UpdateAsync(
-        string id,
-        Recipe recipe,
-        CancellationToken cancellationToken = default)
+    public async Task<bool> UpdateAsync(string id, Recipe recipe, CancellationToken cancellationToken = default)
     {
         recipe.Id = id;
 
         await GenerateEmbeddingAsync(recipe, cancellationToken);
 
-        var result = await _recipes.ReplaceOneAsync(
-            r => r.Id == id,
-            recipe,
-            cancellationToken: cancellationToken);
+        var result = await _recipes.ReplaceOneAsync(r => r.Id == id, recipe, cancellationToken: cancellationToken);
 
         return result.MatchedCount > 0;
     }
 
-    public async Task<bool> DeleteAsync(
-        string id,
-        CancellationToken cancellationToken = default)
+    public async Task<bool> DeleteAsync(string id, CancellationToken cancellationToken = default)
     {
-        var result = await _recipes.DeleteOneAsync(
-            r => r.Id == id,
-            cancellationToken);
+        var result = await _recipes.DeleteOneAsync(r => r.Id == id, cancellationToken);
 
         return result.DeletedCount > 0;
     }
 
     public async Task<IReadOnlyList<RecipeSearchResult>> SearchAsync(
-        float[] queryVector,
-        int limit,
-        CancellationToken cancellationToken = default)
+        float[] queryVector, int limit, CancellationToken cancellationToken = default)
     {
         var pipeline = new[]
         {
@@ -125,22 +104,17 @@ public sealed class RecipeService : IRecipeService
             {
                 var score = document["Score"].AsDouble;
 
-                var recipe = BsonSerializer.Deserialize<Recipe>(
-                    document);
+                var recipe = BsonSerializer.Deserialize<Recipe>(document);
 
                 return new RecipeSearchResult(recipe, score);
             })
             .ToList();
     }
 
-    private async Task GenerateEmbeddingAsync(
-        Recipe recipe,
-        CancellationToken cancellationToken)
+    private async Task GenerateEmbeddingAsync(Recipe recipe, CancellationToken cancellationToken)
     {
         recipe.SearchText = RecipeSearchTextBuilder.Build(recipe);
 
-        recipe.Embedding = await _embeddingService.GenerateAsync(
-            recipe.SearchText,
-            cancellationToken);
+        recipe.Embedding = await _embeddingService.GenerateAsync(recipe.SearchText, cancellationToken);
     }
 }

@@ -21,21 +21,12 @@ public sealed class RecipeImporter
         _logger = logger;
     }
 
-    public async Task ImportAsync(
-        string filePath,
-        CancellationToken cancellationToken = default)
+    public async Task ImportAsync(string filePath, CancellationToken cancellationToken = default)
     {
         await using var stream = File.OpenRead(filePath);
 
-        var options = new JsonSerializerOptions
-        {
-            PropertyNameCaseInsensitive = true
-        };
-
-        var recipes = await JsonSerializer.DeserializeAsync<List<Recipe>>(
-            stream,
-            options,
-            cancellationToken: cancellationToken);
+        var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+        var recipes = await JsonSerializer.DeserializeAsync<List<Recipe>>(stream, options, cancellationToken: cancellationToken);
 
         if (recipes is null || recipes.Count == 0)
         {
@@ -48,21 +39,11 @@ public sealed class RecipeImporter
         foreach (var recipe in recipes)
         {
             _logger.LogInformation("Embedding: {Title}", recipe.Title);
-
-            recipe.SearchText =
-                RecipeSearchTextBuilder.Build(recipe);
-
-            recipe.Embedding =
-                await _embeddingService.GenerateAsync(
-                    recipe.SearchText,
-                    cancellationToken);
+            recipe.SearchText = RecipeSearchTextBuilder.Build(recipe);
+            recipe.Embedding = await _embeddingService.GenerateAsync(recipe.SearchText, cancellationToken);
         }
 
-        await _recipes.InsertManyAsync(
-            recipes,
-            cancellationToken: cancellationToken);
-
-        _logger.LogInformation(
-            "Imported {Count} recipes.", recipes.Count);
+        await _recipes.InsertManyAsync(recipes, cancellationToken: cancellationToken);
+        _logger.LogInformation("Imported {Count} recipes.", recipes.Count);
     }
 }

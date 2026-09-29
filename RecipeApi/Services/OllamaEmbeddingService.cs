@@ -17,30 +17,17 @@ public sealed class OllamaEmbeddingService : IEmbeddingService
         _settings = settings;
     }
 
-    public async Task<float[]> GenerateAsync(
-        string text,
-        CancellationToken cancellationToken = default)
+    public async Task<float[]> GenerateAsync(string text, CancellationToken cancellationToken = default)
     {
-        var request = new OllamaEmbeddingRequest(
-            _settings.EmbeddingModel,
-            text);
-
-        var response = await _httpClient.PostAsJsonAsync(
-            "/api/embed",
-            request,
-            cancellationToken);
-
+        var request = new OllamaEmbeddingRequest(_settings.EmbeddingModel, text);
+        var response = await _httpClient.PostAsJsonAsync("/api/embed", request, cancellationToken);
         response.EnsureSuccessStatusCode();
 
-        var result = await response.Content
-            .ReadFromJsonAsync<OllamaEmbeddingResponse>(
-                cancellationToken);
+        var result = await response.Content.ReadFromJsonAsync<OllamaEmbeddingResponse>(cancellationToken);
 
-        if (result?.Embeddings is null ||
-            result.Embeddings.Count == 0)
+        if (result?.Embeddings is null || result.Embeddings.Count == 0)
         {
-            throw new InvalidOperationException(
-                "Ollama returned no embedding.");
+            throw new InvalidOperationException("Ollama returned no embedding.");
         }
 
         return result.Embeddings[0];
