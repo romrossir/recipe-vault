@@ -1,10 +1,12 @@
 using RecipeApi.Extensions;
 using RecipeApi.Services;
+using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
+builder.Services.AddProblemDetails();
 builder.Services.AddMongoDb(builder.Configuration);
 builder.Services.AddOllama(builder.Configuration);
 
@@ -22,6 +24,12 @@ if (args.Length == 2 && args[0].Equals("import", StringComparison.OrdinalIgnoreC
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+    app.MapScalarApiReference();
+    app.UseDeveloperExceptionPage();
+}
+else
+{
+    app.UseExceptionHandler();
 }
 
 app.UseHttpsRedirection();

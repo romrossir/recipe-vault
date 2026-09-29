@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using MongoDB.Driver;
@@ -11,15 +12,18 @@ public sealed class RecipeService : IRecipeService
     private readonly IMongoCollection<Recipe> _recipes;
     private readonly IEmbeddingService _embeddingService;
     private readonly MongoDbSettings _settings;
+    private readonly ILogger<RecipeService> _logger;
 
     public RecipeService(
         IMongoCollection<Recipe> recipes,
         IEmbeddingService embeddingService,
-        MongoDbSettings settings)
+        MongoDbSettings settings,
+        ILogger<RecipeService> logger)
     {
         _recipes = recipes;
         _embeddingService = embeddingService;
         _settings = settings;
+        _logger = logger;
     }
 
     public async Task<IReadOnlyCollection<Recipe>> GetAllAsync(int skip, int limit, CancellationToken cancellationToken = default)
@@ -41,8 +45,8 @@ public sealed class RecipeService : IRecipeService
     public async Task<Recipe> CreateAsync(Recipe recipe, CancellationToken cancellationToken = default)
     {
         await GenerateEmbeddingAsync(recipe, cancellationToken);
-
         await _recipes.InsertOneAsync(recipe, cancellationToken: cancellationToken);
+        _logger.LogInformation("Created recipe '{Title}' with id {Id}.", recipe.Title, recipe.Id);
 
         return recipe;
     }
@@ -50,23 +54,41 @@ public sealed class RecipeService : IRecipeService
     public async Task<bool> UpdateAsync(string id, Recipe recipe, CancellationToken cancellationToken = default)
     {
         recipe.Id = id;
-
         await GenerateEmbeddingAsync(recipe, cancellationToken);
-
         var result = await _recipes.ReplaceOneAsync(r => r.Id == id, recipe, cancellationToken: cancellationToken);
+        var found = result.MatchedCount > 0;
 
-        return result.MatchedCount > 0;
+        if (found)
+            _logger.LogInformation("Updated recipe {Id}.", id);
+        else
+            _logger.LogWarning("Update failed: recipe {Id} not found.", id);
+
+        return found;
     }
 
     public async Task<bool> DeleteAsync(string id, CancellationToken cancellationToken = default)
     {
         var result = await _recipes.DeleteOneAsync(r => r.Id == id, cancellationToken);
+        var found = result.DeletedCount > 0;
 
-        return result.DeletedCount > 0;
+        if (found)
+            _logger.LogInformation("Deleted recipe {Id}.", id);
+        else
+            _logger.LogWarning("Delete failed: recipe {Id} not found.", id);
+
+        return found;
     }
 
-    public async Task<IReadOnlyList<RecipeSearchResult>> SearchAsync(
-        float[] queryVector, int limit, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<RecipeSearchResult>> SearchAsync(string query, int limit, CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("Searching for '{Query}' (limit={Limit}).", query, limit);
+        var queryVector = await _embeddingService.GenerateAsync(query, cancellationToken);
+
+        return await SearchByVectorAsync(queryVector, limit, cancellationToken);
+    }
+
+    private async Task<IReadOnlyList<RecipeSearchResult>> SearchByVectorAsync(
+        float[] queryVector, int limit, CancellationToken cancellationToken)
     {
         var pipeline = new[]
         {

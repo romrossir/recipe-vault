@@ -10,20 +10,22 @@ namespace RecipeApi.Controllers;
 public sealed class RecipesController : ControllerBase
 {
     private readonly IRecipeService _recipeService;
-    private readonly IEmbeddingService _embeddingService;
-    private readonly ILlmService _llmService;
+    private readonly IRecipeAssistantService _assistantService;
+    private readonly ILogger<RecipesController> _logger;
 
     public RecipesController(
         IRecipeService recipeService,
-        IEmbeddingService embeddingService,
-        ILlmService llmService)
+        IRecipeAssistantService assistantService,
+        ILogger<RecipesController> logger)
     {
         _recipeService = recipeService;
-        _embeddingService = embeddingService;
-        _llmService = llmService;
+        _assistantService = assistantService;
+        _logger = logger;
     }
 
     [HttpGet]
+    [ProducesResponseType<IEnumerable<RecipeResponse>>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<RecipeResponse>>> GetAll(
         [FromQuery] int skip = 0,
         [FromQuery] int limit = 20,
@@ -40,11 +42,14 @@ public sealed class RecipesController : ControllerBase
         }
 
         var recipes = await _recipeService.GetAllAsync(skip, limit, cancellationToken);
+        _logger.LogInformation("Returning {Count} recipes (skip={Skip}, limit={Limit}).", recipes.Count, skip, limit);
 
         return Ok(recipes.Select(ToResponse));
     }
 
     [HttpGet("{id}")]
+    [ProducesResponseType<RecipeResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<RecipeResponse>> GetById(string id, CancellationToken cancellationToken)
     {
         var recipe = await _recipeService.GetByIdAsync(id, cancellationToken);
@@ -58,6 +63,8 @@ public sealed class RecipesController : ControllerBase
     }
 
     [HttpPost]
+    [ProducesResponseType<RecipeResponse>(StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<RecipeResponse>> Create(SaveRecipeRequest request, CancellationToken cancellationToken)
     {
         var recipe = ToRecipe(request);
@@ -68,6 +75,9 @@ public sealed class RecipesController : ControllerBase
     }
 
     [HttpPut("{id}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Update(string id, SaveRecipeRequest request, CancellationToken cancellationToken)
     {
         var recipe = ToRecipe(request);
@@ -82,6 +92,8 @@ public sealed class RecipesController : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete(string id, CancellationToken cancellationToken)
     {
         var deleted = await _recipeService.DeleteAsync(id, cancellationToken);
@@ -95,6 +107,8 @@ public sealed class RecipesController : ControllerBase
     }
 
     [HttpGet("search")]
+    [ProducesResponseType<IReadOnlyList<RecipeSearchResponse>>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IReadOnlyList<RecipeSearchResponse>>> Search(
         [FromQuery] string q,
         [FromQuery] int limit = 5,
@@ -111,8 +125,8 @@ public sealed class RecipesController : ControllerBase
             return BadRequest("Limit must be between 1 and 50.");
         }
 
-        var queryVector = await _embeddingService.GenerateAsync(q, cancellationToken);
-        var results = await _recipeService.SearchAsync(queryVector, limit, cancellationToken);
+        var results = await _recipeService.SearchAsync(q, limit, cancellationToken);
+        _logger.LogInformation("Search for '{Query}' returned {Count} results.", q, results.Count);
 
         var response = results
             .Where(r =>
@@ -125,58 +139,20 @@ public sealed class RecipesController : ControllerBase
     }
 
     [HttpPost("ask")]
+    [ProducesResponseType<AskRecipeResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<AskRecipeResponse>> Ask(
         [FromBody] AskRecipeRequest request,
         CancellationToken cancellationToken = default)
     {
-        var queryVector = await _embeddingService.GenerateAsync(request.Question, cancellationToken);
-        var results = await _recipeService.SearchAsync(queryVector, 5, cancellationToken);
+        _logger.LogInformation("Ask: '{Question}'", request.Question);
+        var result = await _assistantService.AskAsync(request.Question, cancellationToken);
 
-        var context = string.Join(
-            "\n\n--- RECIPE ---\n\n",
-            results.Select(r => $"""
-            Title: {r.Recipe.Title}
-
-            Ingredients:
-            {string.Join(
-                    "\n",
-                    r.Recipe.Ingredients.Select(i =>
-                        $"- {i.Quantity} {i.Unit} {i.Name}".Trim()))}
-
-            Steps:
-            {string.Join("\n", r.Recipe.Steps)}
-            """));
-
-        var systemPrompt = """
-        Tu es un assistant spécialisé dans les recettes de cuisine.
-
-        Réponds à la question uniquement à partir des recettes
-        présentes dans le contexte.
-
-        Ne crée pas d'ingrédient, de recette ou d'information
-        qui n'est pas présente dans le contexte.
-
-        Si le contexte ne permet pas de répondre à la question,
-        indique-le clairement.
-        """;
-
-        var userMessage = $"""
-        Question :
-        {request.Question}
-
-        Contexte :
-        {context}
-        """;
-
-        var answer = await _llmService.GenerateAsync(systemPrompt, userMessage, cancellationToken);
-
-        var recipes = results
+        var recipes = result.Sources
             .Select(r => ToSearchResponse(r))
             .ToList();
 
-        return Ok(new AskRecipeResponse(
-            answer,
-            recipes));
+        return Ok(new AskRecipeResponse(result.Answer, recipes));
     }
 
     private static Recipe ToRecipe(SaveRecipeRequest request)

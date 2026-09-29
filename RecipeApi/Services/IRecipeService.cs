@@ -48,12 +48,11 @@ public interface IRecipeService
     Task<bool> DeleteAsync(string id, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Performs a semantic vector search against recipe embeddings.
+    /// Performs a semantic search from a text query.
     /// </summary>
-    /// <param name="queryVector">The query embedding vector.</param>
+    /// <param name="query">The natural-language search query.</param>
     /// <param name="limit">Maximum number of results to return.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Recipes ranked by similarity score, highest first.</returns>
-    Task<IReadOnlyList<RecipeSearchResult>> SearchAsync(
-        float[] queryVector, int limit, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<RecipeSearchResult>> SearchAsync(string query, int limit, CancellationToken cancellationToken = default);
 }

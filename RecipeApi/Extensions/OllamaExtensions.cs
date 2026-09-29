@@ -20,6 +20,8 @@ public static class OllamaExtensions
                 client.Timeout = TimeSpan.FromMinutes(5);
             });
 
+        services.AddScoped<IRecipeAssistantService, RecipeAssistantService>();
+
         return services;
     }
 }
