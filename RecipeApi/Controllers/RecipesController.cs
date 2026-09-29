@@ -66,30 +66,10 @@ public sealed class RecipesController : ControllerBase
 
     [HttpPost]
     public async Task<ActionResult<RecipeResponse>> Create(
-    CreateRecipeRequest request,
-    CancellationToken cancellationToken)
+        SaveRecipeRequest request,
+        CancellationToken cancellationToken)
     {
-        var recipe = new Recipe
-        {
-            Title = request.Title,
-
-            Ingredients = request.Ingredients
-                .Select(i => new Ingredient
-                {
-                    Name = i.Name,
-                    Quantity = i.Quantity,
-                    Unit = i.Unit
-                })
-                .ToList(),
-
-            Steps = request.Steps.ToList()
-        };
-
-        recipe.SearchText = RecipeSearchTextBuilder.Build(recipe);
-
-        recipe.Embedding = await _embeddingService.GenerateAsync(
-            recipe.SearchText,
-            cancellationToken);
+        var recipe = ToRecipe(request);
 
         var createdRecipe = await _recipeService.CreateAsync(
             recipe,
@@ -106,31 +86,10 @@ public sealed class RecipesController : ControllerBase
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(
         string id,
-        UpdateRecipeRequest request,
+        SaveRecipeRequest request,
         CancellationToken cancellationToken)
     {
-        var recipe = new Recipe
-        {
-            Id = id,
-            Title = request.Title,
-
-            Ingredients = request.Ingredients
-                .Select(i => new Ingredient
-                {
-                    Name = i.Name,
-                    Quantity = i.Quantity,
-                    Unit = i.Unit
-                })
-                .ToList(),
-
-            Steps = request.Steps.ToList()
-        };
-
-        recipe.SearchText = RecipeSearchTextBuilder.Build(recipe);
-
-        recipe.Embedding = await _embeddingService.GenerateAsync(
-            recipe.SearchText,
-            cancellationToken);
+        var recipe = ToRecipe(request);
 
         var updated = await _recipeService.UpdateAsync(
             id,
@@ -162,36 +121,54 @@ public sealed class RecipesController : ControllerBase
         return NoContent();
     }
 
+    private static Recipe ToRecipe(SaveRecipeRequest request)
+    {
+        return new Recipe
+        {
+            Title = request.Title,
+
+            Ingredients = request.Ingredients
+                .Select(i => new Ingredient
+                {
+                    Name = i.Name,
+                    Quantity = i.Quantity,
+                    Unit = i.Unit
+                })
+                .ToList(),
+
+            Steps = request.Steps.ToList()
+        };
+    }
+
     private static RecipeResponse ToResponse(Recipe recipe)
     {
         return new RecipeResponse(
             recipe.Id!,
             recipe.Title,
-
-            recipe.Ingredients
-                .Select(i => new IngredientDto(
-                    i.Name,
-                    i.Quantity,
-                    i.Unit))
-                .ToList(),
-
+            ToIngredientDtos(recipe.Ingredients),
             recipe.Steps.ToList());
     }
 
-    [HttpPost("embedding-test")]
-    public async Task<ActionResult> TestEmbedding(
-    [FromBody] string text,
-    CancellationToken cancellationToken)
+    private static RecipeSearchResponse ToSearchResponse(
+        RecipeSearchResult result)
     {
-        var embedding = await _embeddingService.GenerateAsync(
-            text,
-            cancellationToken);
+        return new RecipeSearchResponse(
+            result.Recipe.Id!,
+            result.Recipe.Title,
+            ToIngredientDtos(result.Recipe.Ingredients),
+            result.Recipe.Steps,
+            result.Score);
+    }
 
-        return Ok(new
-        {
-            Dimensions = embedding.Length,
-            FirstValues = embedding.Take(10)
-        });
+    private static List<IngredientDto> ToIngredientDtos(
+        IEnumerable<Ingredient> ingredients)
+    {
+        return ingredients
+            .Select(i => new IngredientDto(
+                i.Name,
+                i.Quantity,
+                i.Unit))
+            .ToList();
     }
 
     [HttpGet("search")]
@@ -221,20 +198,10 @@ public sealed class RecipesController : ControllerBase
             cancellationToken);
 
         var response = results
-            .Where(result =>
+            .Where(r =>
                 !minScore.HasValue ||
-                result.Score >= minScore.Value)
-            .Select(result => new RecipeSearchResponse(
-                result.Recipe.Id!,
-                result.Recipe.Title,
-                result.Recipe.Ingredients
-                    .Select(i => new IngredientDto(
-                        i.Name,
-                        i.Quantity,
-                        i.Unit))
-                    .ToList(),
-                result.Recipe.Steps,
-                result.Score))
+                r.Score >= minScore.Value)
+            .Select(r => ToSearchResponse(r))
             .ToList();
 
         return Ok(response);
@@ -256,17 +223,17 @@ public sealed class RecipesController : ControllerBase
 
         var context = string.Join(
             "\n\n--- RECIPE ---\n\n",
-            results.Select(result => $"""
-            Title: {result.Recipe.Title}
+            results.Select(r => $"""
+            Title: {r.Recipe.Title}
 
             Ingredients:
             {string.Join(
                     "\n",
-                    result.Recipe.Ingredients.Select(i =>
+                    r.Recipe.Ingredients.Select(i =>
                         $"- {i.Quantity} {i.Unit} {i.Name}".Trim()))}
 
             Steps:
-            {string.Join("\n", result.Recipe.Steps)}
+            {string.Join("\n", r.Recipe.Steps)}
             """));
 
         var systemPrompt = """
@@ -296,17 +263,7 @@ public sealed class RecipesController : ControllerBase
             cancellationToken);
 
         var recipes = results
-            .Select(result => new RecipeSearchResponse(
-                result.Recipe.Id!,
-                result.Recipe.Title,
-                result.Recipe.Ingredients
-                    .Select(i => new IngredientDto(
-                        i.Name,
-                        i.Quantity,
-                        i.Unit))
-                    .ToList(),
-                result.Recipe.Steps,
-                result.Score))
+            .Select(r => ToSearchResponse(r))
             .ToList();
 
         return Ok(new AskRecipeResponse(

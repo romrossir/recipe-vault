@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
 using RecipeApi.Models;
 
@@ -8,13 +9,16 @@ public sealed class RecipeImporter
 {
     private readonly IMongoCollection<Recipe> _recipes;
     private readonly IEmbeddingService _embeddingService;
+    private readonly ILogger<RecipeImporter> _logger;
 
     public RecipeImporter(
         IMongoCollection<Recipe> recipes,
-        IEmbeddingService embeddingService)
+        IEmbeddingService embeddingService,
+        ILogger<RecipeImporter> logger)
     {
         _recipes = recipes;
         _embeddingService = embeddingService;
+        _logger = logger;
     }
 
     public async Task ImportAsync(
@@ -35,15 +39,15 @@ public sealed class RecipeImporter
 
         if (recipes is null || recipes.Count == 0)
         {
-            Console.WriteLine("No recipes found.");
+            _logger.LogWarning("No recipes found in {FilePath}.", filePath);
             return;
         }
 
-        Console.WriteLine($"Found {recipes.Count} recipes.");
+        _logger.LogInformation("Found {Count} recipes.", recipes.Count);
 
         foreach (var recipe in recipes)
         {
-            Console.WriteLine($"Embedding: {recipe.Title}");
+            _logger.LogInformation("Embedding: {Title}", recipe.Title);
 
             recipe.SearchText =
                 RecipeSearchTextBuilder.Build(recipe);
@@ -58,7 +62,7 @@ public sealed class RecipeImporter
             recipes,
             cancellationToken: cancellationToken);
 
-        Console.WriteLine(
-            $"Imported {recipes.Count} recipes.");
+        _logger.LogInformation(
+            "Imported {Count} recipes.", recipes.Count);
     }
 }

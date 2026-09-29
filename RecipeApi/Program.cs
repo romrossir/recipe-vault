@@ -21,6 +21,7 @@ var mongoDatabase = mongoClient.GetDatabase(mongoSettings.DatabaseName);
 var recipesCollection =
     mongoDatabase.GetCollection<Recipe>(mongoSettings.RecipesCollectionName);
 
+builder.Services.AddSingleton(mongoSettings);
 builder.Services.AddSingleton(recipesCollection);
 
 builder.Services.AddScoped<IRecipeService, RecipeService>();
@@ -49,14 +50,6 @@ builder.Services.AddHttpClient<ILlmService, OllamaLlmService>(
 
 var app = builder.Build();
 
-if (app.Environment.IsDevelopment())
-{
-    app.MapOpenApi();
-}
-
-app.UseHttpsRedirection();
-app.MapControllers();
-
 if (args.Length == 2 && args[0].Equals("import", StringComparison.OrdinalIgnoreCase))
 {
     using var scope = app.Services.CreateScope();
@@ -68,5 +61,13 @@ if (args.Length == 2 && args[0].Equals("import", StringComparison.OrdinalIgnoreC
 
     return;
 }
+
+if (app.Environment.IsDevelopment())
+{
+    app.MapOpenApi();
+}
+
+app.UseHttpsRedirection();
+app.MapControllers();
 
 app.Run();

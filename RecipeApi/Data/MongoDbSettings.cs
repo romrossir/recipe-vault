@@ -7,4 +7,6 @@ public sealed class MongoDbSettings
     public required string DatabaseName { get; init; }
 
     public required string RecipesCollectionName { get; init; }
+
+    public required string EmbeddingIndexName { get; init; }
 }

@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace RecipeApi.Dtos;
 
-public sealed class CreateRecipeRequest
+public sealed class SaveRecipeRequest
 {
     [Required]
     [StringLength(200)]

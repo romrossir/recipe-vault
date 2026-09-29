@@ -26,7 +26,7 @@ public interface IRecipeService
         string id,
         CancellationToken cancellationToken = default);
 
-    Task<IReadOnlyList<(Recipe Recipe, double Score)>> SearchAsync(
+    Task<IReadOnlyList<RecipeSearchResult>> SearchAsync(
         float[] queryVector,
         int limit,
         CancellationToken cancellationToken = default);
