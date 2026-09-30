@@ -7,4 +7,6 @@ public sealed class OllamaSettings
     public required string EmbeddingModel { get; init; }
 
     public required string LlmModel { get; init; }
+
+    public required string VisionModel { get; init; }
 }

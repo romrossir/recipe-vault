@@ -238,11 +238,24 @@ Accept: application/json
 }
 
 ### ========================================
-### INGEST - extract recipe from image/PDF
-### Requires ocr-service running at :8080
+### INGEST (vision) - default mode, uses vision model
 ### ========================================
 
 POST {{RecipeApi_HostAddress}}/api/recipes/ingest?page=1
+Content-Type: multipart/form-data; boundary=----Boundary
+
+------Boundary
+Content-Disposition: form-data; name="file"; filename="financiers.png"
+Content-Type: image/png
+
+< C:\workspace\recipe-images\financiers.png
+------Boundary--
+
+### ========================================
+### INGEST (ocr) - uses OCR service at :8080
+### ========================================
+
+POST {{RecipeApi_HostAddress}}/api/recipes/ingest?mode=ocr&page=1
 Content-Type: multipart/form-data; boundary=----Boundary
 
 ------Boundary

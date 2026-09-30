@@ -165,33 +165,49 @@ public sealed class RecipesController : ControllerBase
     }
 
     [HttpPost("ingest")]
-    [ProducesResponseType<RecipeResponse>(StatusCodes.Status201Created)]
+    [ProducesResponseType<IReadOnlyList<RecipeResponse>>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<RecipeResponse>> Ingest(
+    public async Task<ActionResult<IReadOnlyList<RecipeResponse>>> Ingest(
         IFormFile file,
+        [FromQuery] string mode = "vision",
         [FromQuery] int? page = null,
         CancellationToken cancellationToken = default)
     {
         if (file.Length == 0)
             return BadRequest("File is empty.");
 
+        if (mode is not "vision" and not "ocr")
+            return BadRequest("Mode must be 'vision' or 'ocr'.");
+
         await using var uploadStream = file.OpenReadStream();
         var sourceFile = await _sourceFileService.UploadAsync(file.FileName, file.ContentType, uploadStream, cancellationToken);
 
-        await using var ocrStream = file.OpenReadStream();
-        var ocrText = await _ocrClient.ExtractTextAsync(file.FileName, file.ContentType, ocrStream, cancellationToken);
+        IReadOnlyList<Recipe> recipes;
+        if (mode == "vision")
+        {
+            await using var imageStream = file.OpenReadStream();
+            recipes = await _extractorService.ExtractFromImageAsync(imageStream, cancellationToken);
+        }
+        else
+        {
+            await using var ocrStream = file.OpenReadStream();
+            var ocrText = await _ocrClient.ExtractTextAsync(file.FileName, file.ContentType, ocrStream, cancellationToken);
+            recipes = await _extractorService.ExtractFromTextAsync(ocrText, cancellationToken);
+        }
 
-        var recipe = await _extractorService.ExtractAsync(ocrText, cancellationToken);
+        var responses = new List<RecipeResponse>();
+        foreach (var recipe in recipes)
+        {
+            recipe.SourceFileId = sourceFile.Id;
+            if (page.HasValue)
+                recipe.SourcePages = [page.Value];
 
-        recipe.SourceFileId = sourceFile.Id;
-        if (page.HasValue)
-            recipe.SourcePages = [page.Value];
+            var created = await _recipeService.CreateAsync(recipe, cancellationToken);
+            _logger.LogInformation("Ingested recipe '{Title}' from source {SourceFileId} (mode={Mode}).", created.Title, sourceFile.Id, mode);
+            responses.Add(ToResponse(created));
+        }
 
-        var created = await _recipeService.CreateAsync(recipe, cancellationToken);
-        _logger.LogInformation("Ingested recipe '{Title}' from source {SourceFileId}.", created.Title, sourceFile.Id);
-
-        var response = ToResponse(created);
-        return CreatedAtAction(nameof(GetById), new { id = response.Id }, response);
+        return Ok(responses);
     }
 
     private static Recipe ToRecipe(SaveRecipeRequest request)
