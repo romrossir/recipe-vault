@@ -170,7 +170,9 @@ public sealed class RecipesController : ControllerBase
                 })
                 .ToList(),
 
-            Steps = request.Steps.ToList()
+            Steps = request.Steps.ToList(),
+            SourceFileId = request.SourceFileId,
+            SourcePages = request.SourcePages.ToList()
         };
     }
 
@@ -180,7 +182,9 @@ public sealed class RecipesController : ControllerBase
             recipe.Id!,
             recipe.Title,
             ToIngredientDtos(recipe.Ingredients),
-            recipe.Steps.ToList());
+            recipe.Steps.ToList(),
+            recipe.SourceFileId,
+            recipe.SourcePages);
     }
 
     private static RecipeSearchResponse ToSearchResponse(RecipeSearchResult result)
@@ -190,6 +194,8 @@ public sealed class RecipesController : ControllerBase
             result.Recipe.Title,
             ToIngredientDtos(result.Recipe.Ingredients),
             result.Recipe.Steps,
+            result.Recipe.SourceFileId,
+            result.Recipe.SourcePages,
             result.Score);
     }
 

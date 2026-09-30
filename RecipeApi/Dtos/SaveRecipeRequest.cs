@@ -11,4 +11,8 @@ public sealed class SaveRecipeRequest
     public IReadOnlyList<IngredientDto> Ingredients { get; init; } = [];
 
     public IReadOnlyList<string> Steps { get; init; } = [];
+
+    public string? SourceFileId { get; init; }
+
+    public IReadOnlyList<int> SourcePages { get; init; } = [];
 }

@@ -5,4 +5,6 @@ public sealed record RecipeSearchResponse(
     string Title,
     IReadOnlyList<IngredientDto> Ingredients,
     IReadOnlyList<string> Steps,
+    string? SourceFileId,
+    IReadOnlyList<int> SourcePages,
     double Score);

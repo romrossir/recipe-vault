@@ -4,5 +4,6 @@ public sealed record RecipeResponse(
     string Id,
     string Title,
     IReadOnlyList<IngredientDto> Ingredients,
-    IReadOnlyList<string> Steps
-);
+    IReadOnlyList<string> Steps,
+    string? SourceFileId,
+    IReadOnlyList<int> SourcePages);

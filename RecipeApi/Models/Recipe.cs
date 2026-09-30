@@ -15,6 +15,10 @@ public sealed class Recipe
 
     public List<string> Steps { get; set; } = [];
 
+    public string? SourceFileId { get; set; }
+
+    public List<int> SourcePages { get; set; } = [];
+
     public string? SearchText { get; set; }
 
     public float[]? Embedding { get; set; }
