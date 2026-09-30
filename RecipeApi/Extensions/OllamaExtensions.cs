@@ -21,6 +21,7 @@ public static class OllamaExtensions
             });
 
         services.AddScoped<IRecipeAssistantService, RecipeAssistantService>();
+        services.AddScoped<IRecipeExtractorService, RecipeExtractorService>();
 
         return services;
     }

@@ -11,15 +11,24 @@ public sealed class RecipesController : ControllerBase
 {
     private readonly IRecipeService _recipeService;
     private readonly IRecipeAssistantService _assistantService;
+    private readonly ISourceFileService _sourceFileService;
+    private readonly IOcrClient _ocrClient;
+    private readonly IRecipeExtractorService _extractorService;
     private readonly ILogger<RecipesController> _logger;
 
     public RecipesController(
         IRecipeService recipeService,
         IRecipeAssistantService assistantService,
+        ISourceFileService sourceFileService,
+        IOcrClient ocrClient,
+        IRecipeExtractorService extractorService,
         ILogger<RecipesController> logger)
     {
         _recipeService = recipeService;
         _assistantService = assistantService;
+        _sourceFileService = sourceFileService;
+        _ocrClient = ocrClient;
+        _extractorService = extractorService;
         _logger = logger;
     }
 
@@ -153,6 +162,36 @@ public sealed class RecipesController : ControllerBase
             .ToList();
 
         return Ok(new AskRecipeResponse(result.Answer, recipes));
+    }
+
+    [HttpPost("ingest")]
+    [ProducesResponseType<RecipeResponse>(StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<RecipeResponse>> Ingest(
+        IFormFile file,
+        [FromQuery] int? page = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (file.Length == 0)
+            return BadRequest("File is empty.");
+
+        await using var uploadStream = file.OpenReadStream();
+        var sourceFile = await _sourceFileService.UploadAsync(file.FileName, file.ContentType, uploadStream, cancellationToken);
+
+        await using var ocrStream = file.OpenReadStream();
+        var ocrText = await _ocrClient.ExtractTextAsync(file.FileName, file.ContentType, ocrStream, cancellationToken);
+
+        var recipe = await _extractorService.ExtractAsync(ocrText, cancellationToken);
+
+        recipe.SourceFileId = sourceFile.Id;
+        if (page.HasValue)
+            recipe.SourcePages = [page.Value];
+
+        var created = await _recipeService.CreateAsync(recipe, cancellationToken);
+        _logger.LogInformation("Ingested recipe '{Title}' from source {SourceFileId}.", created.Title, sourceFile.Id);
+
+        var response = ToResponse(created);
+        return CreatedAtAction(nameof(GetById), new { id = response.Id }, response);
     }
 
     private static Recipe ToRecipe(SaveRecipeRequest request)

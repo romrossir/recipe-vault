@@ -9,6 +9,8 @@ builder.Services.AddOpenApi();
 builder.Services.AddProblemDetails();
 builder.Services.AddMongoDb(builder.Configuration);
 builder.Services.AddOllama(builder.Configuration);
+builder.Services.AddSourceFileStorage(builder.Configuration);
+builder.Services.AddOcr(builder.Configuration);
 
 var app = builder.Build();
 

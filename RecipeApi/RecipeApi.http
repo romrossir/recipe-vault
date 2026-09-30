@@ -234,9 +234,64 @@ Content-Type: application/json
 Accept: application/json
 
 {
-  "question": "Je cherche une recette avec beaucoup de fruits"
+  "question": "Je cherche une recette de cheesecake"
 }
 
+### ========================================
+### INGEST - extract recipe from image/PDF
+### Requires ocr-service running at :8080
+### ========================================
+
+POST {{RecipeApi_HostAddress}}/api/recipes/ingest?page=1
+Content-Type: multipart/form-data; boundary=----Boundary
+
+------Boundary
+Content-Disposition: form-data; name="file"; filename="financiers.png"
+Content-Type: image/png
+
+< C:\workspace\recipe-images\financiers.png
+------Boundary--
+
+### ========================================
+### SOURCE FILES - upload
+### ========================================
+
+POST {{RecipeApi_HostAddress}}/api/sources
+Content-Type: multipart/form-data; boundary=----Boundary
+
+------Boundary
+Content-Disposition: form-data; name="file"; filename="magazine.pdf"
+Content-Type: application/pdf
+
+< ./test-file.pdf
+------Boundary--
+
+### ========================================
+### SOURCE FILES - list all
+### ========================================
+
+GET {{RecipeApi_HostAddress}}/api/sources
+Accept: application/json
+
+### ========================================
+### SOURCE FILES - get by ID
+### ========================================
+
+GET {{RecipeApi_HostAddress}}/api/sources/1
+Accept: application/json
+
+### ========================================
+### SOURCE FILES - download content
+### ========================================
+
+GET {{RecipeApi_HostAddress}}/api/sources/1/content
+
+### ========================================
+### SOURCE FILES - delete
+### ========================================
+
+DELETE {{RecipeApi_HostAddress}}/api/sources/1
+
 ### Search - titre exact
-GET {{RecipeApi_HostAddress}}/api/recipes/search?q=La%20pavlova%20poire%20et%20thé&limit=10
+GET {{RecipeApi_HostAddress}}/api/recipes/search?q=Je%20cherche%20une%20recette%20de%20cheesecake&limit=10
 Accept: application/json
