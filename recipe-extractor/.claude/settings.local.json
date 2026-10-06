@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -E \"\\\\.\\(md|yml|yaml|toml|ini|conf|config\\)$\")",
+      "Bash(py --version)",
+      "Bash(where py *)",
+      "Bash(dotnet build *)",
+      "Bash(dotnet test *)",
+      "Bash(py -3.12 --version)",
+      "Bash(py -3.11 --version)",
+      "Bash(py -m pip index versions paddleocr)",
+      "Bash(py -m pip install --dry-run paddlepaddle paddleocr)",
+      "Bash(py -m venv .venv)",
+      "Bash(.venv/Scripts/pip install *)",
+      "Bash(.venv/Scripts/python -c \"from paddleocr import PaddleOCR; print\\('import OK'\\)\")",
+      "Bash(.venv/Scripts/python -c ' *)",
+      "Bash(DNNL_DISABLE=1 FLAGS_use_mkldnn=0 .venv/Scripts/python -c ' *)",
+      "Bash(.venv/Scripts/recipe-ocr --help)",
+      "Bash(.venv/Scripts/recipe-ocr ocr *)",
+      "Bash(.venv/Scripts/recipe-ocr status *)",
+      "Bash(.venv/Scripts/recipe-ocr structure *)",
+      "Bash(.venv/Scripts/recipe-extractor --help)",
+      "Bash(cmd //c \"rename recipe-ocr recipe-extractor\")"
+    ]
+  }
+}

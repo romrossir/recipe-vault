@@ -1,0 +1,14 @@
+ollama:
+  base_url: "http://localhost:11434"
+  model: "llama3.2"
+  timeout: 600
+
+api:
+  base_url: "http://localhost:5000"
+
+ocr:
+  lang: "fr"
+  dpi: 300
+  confidence_threshold: 0.7
+
+work_dir: "./work"
