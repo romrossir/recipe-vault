@@ -32,7 +32,8 @@ def cli() -> None:
 @click.option("-l", "--lang", default=None, help="OCR language (default: from config)")
 @click.option("--dpi", type=int, default=None, help="DPI for PDF rendering (default: from config)")
 @click.option("-p", "--pages", default=None, help="Pages to process, e.g. '5,12,45-60,73'")
-def ocr(input_path: Path, output_dir: Path | None, lang: str | None, dpi: int | None, pages: str | None) -> None:
+@click.option("--no-layout", is_flag=True, help="Disable layout analysis (use flat OCR)")
+def ocr(input_path: Path, output_dir: Path | None, lang: str | None, dpi: int | None, pages: str | None, no_layout: bool) -> None:
     """Stage 1: Run OCR on images or PDFs and produce Markdown files."""
     config = load_config(_resolve_config_dir())
 
@@ -40,6 +41,8 @@ def ocr(input_path: Path, output_dir: Path | None, lang: str | None, dpi: int | 
         config.ocr.lang = lang
     if dpi:
         config.ocr.dpi = dpi
+    if no_layout:
+        config.ocr.use_layout = False
 
     work_dir = output_dir or Path(config.work_dir)
     page_set = parse_page_spec(pages) if pages else None
@@ -106,15 +109,19 @@ def push(json_dir: Path, source_file: Path | None, dry_run: bool) -> None:
 @click.option("--skip-ocr", is_flag=True, help="Skip OCR, start from existing .md files")
 @click.option("--source-file", type=click.Path(exists=True, path_type=Path), default=None)
 @click.option("-p", "--pages", default=None, help="Pages to process, e.g. '5,12,45-60,73'")
+@click.option("--no-layout", is_flag=True, help="Disable layout analysis (use flat OCR)")
 def run(
     input_path: Path,
     no_push: bool,
     skip_ocr: bool,
     source_file: Path | None,
     pages: str | None,
+    no_layout: bool,
 ) -> None:
     """Run the full pipeline: OCR -> manual review -> structure -> push."""
     config = load_config(_resolve_config_dir())
+    if no_layout:
+        config.ocr.use_layout = False
     work_dir = Path(config.work_dir)
     page_set = parse_page_spec(pages) if pages else None
 

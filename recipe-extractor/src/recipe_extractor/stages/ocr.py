@@ -114,9 +114,64 @@ def _run_ocr_on_image(ocr_engine, image_path: Path) -> list[dict]:
     return _sort_blocks_reading_order(blocks)
 
 
+def _run_layout_ocr_on_page(layout_engine, page_result) -> list[dict]:
+    """Extract structured blocks from a PPStructureV3 page result."""
+    res = page_result.json.get("res", {}) if hasattr(page_result, "json") else {}
+    parsing_list = res.get("parsing_res_list") or []
+
+    blocks: list[dict] = []
+    for item in parsing_list:
+        label = item.get("block_label", "")
+        content = (item.get("block_content") or "").strip()
+        if not content:
+            continue
+        bbox = item.get("block_bbox", [0, 0, 0, 0])
+        order = item.get("block_order")
+        blocks.append({
+            "text": content,
+            "label": label,
+            "bbox": bbox,
+            "block_order": order,
+        })
+
+    ordered = [b for b in blocks if b["block_order"] is not None]
+    unordered = [b for b in blocks if b["block_order"] is None]
+    ordered.sort(key=lambda b: b["block_order"])
+    return ordered + unordered
+
+
 def _write_manifest(manifest_path: Path, manifest: dict) -> None:
     with open(manifest_path, "w", encoding="utf-8") as f:
         json.dump(manifest, f, ensure_ascii=False, indent=2)
+
+
+def _create_layout_engine(config: OcrConfig):
+    from paddleocr import PPStructureV3
+
+    return PPStructureV3(
+        lang=config.lang,
+        use_doc_orientation_classify=False,
+        use_doc_unwarping=False,
+        use_textline_orientation=False,
+        use_seal_recognition=False,
+        use_table_recognition=False,
+        use_formula_recognition=False,
+        use_chart_recognition=False,
+        use_region_detection=False,
+        engine="onnxruntime",
+    )
+
+
+def _create_ocr_engine(config: OcrConfig):
+    from paddleocr import PaddleOCR
+
+    return PaddleOCR(
+        lang=config.lang,
+        use_doc_orientation_classify=False,
+        use_doc_unwarping=False,
+        use_textline_orientation=False,
+        engine="onnxruntime",
+    )
 
 
 def run_ocr(
@@ -126,15 +181,10 @@ def run_ocr(
     pages: set[int] | None = None,
 ) -> Path:
     """Run OCR on a PDF, image, or directory. Returns the work directory."""
-    from paddleocr import PaddleOCR
-
-    ocr_engine = PaddleOCR(
-        lang=config.lang,
-        use_doc_orientation_classify=False,
-        use_doc_unwarping=False,
-        use_textline_orientation=False,
-        engine="onnxruntime",
-    )
+    if config.use_layout:
+        engine = _create_layout_engine(config)
+    else:
+        engine = _create_ocr_engine(config)
 
     input_path = input_path.resolve()
     files_to_process: list[tuple[Path, bool]] = []
@@ -155,9 +205,85 @@ def run_ocr(
     for source_file, is_pdf in files_to_process:
         stem = _sanitize_stem(source_file.name)
         source_work_dir = work_dir / stem
-        _process_single_source(ocr_engine, source_file, is_pdf, source_work_dir, config, pages)
+        if config.use_layout:
+            _process_single_source_layout(engine, source_file, is_pdf, source_work_dir, config, pages)
+        else:
+            _process_single_source(engine, source_file, is_pdf, source_work_dir, config, pages)
 
     return work_dir
+
+
+def _process_single_source_layout(
+    layout_engine,
+    source_file: Path,
+    is_pdf: bool,
+    work_dir: Path,
+    config: OcrConfig,
+    pages: set[int] | None = None,
+) -> None:
+    source_dir = work_dir / "source"
+    pages_dir = work_dir / "pages"
+    ocr_dir = work_dir / "ocr"
+    json_dir = work_dir / "json"
+    push_dir = work_dir / "push"
+
+    for d in [source_dir, pages_dir, ocr_dir, json_dir, push_dir]:
+        d.mkdir(parents=True, exist_ok=True)
+
+    dest = source_dir / source_file.name
+    if not dest.exists():
+        shutil.copy2(source_file, dest)
+
+    if is_pdf:
+        image_paths = pdf_to_images(source_file, pages_dir, dpi=config.dpi, pages=pages)
+    else:
+        dest_page = pages_dir / source_file.name
+        shutil.copy2(source_file, dest_page)
+        image_paths = [(dest_page, 1)]
+
+    manifest_path = work_dir / "_manifest.json"
+    manifest = {
+        "source": source_file.name,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "dpi": config.dpi,
+        "lang": config.lang,
+        "layout": True,
+        "total_pages": len(image_paths),
+        "pages": {},
+    }
+
+    with Progress() as progress:
+        task = progress.add_task(f"OCR (layout) {source_file.name}", total=len(image_paths))
+
+        for image_path, page_num in image_paths:
+            result = layout_engine.predict(str(image_path))
+            blocks: list[dict] = []
+            for page_result in result:
+                blocks = _run_layout_ocr_on_page(layout_engine, page_result)
+
+            has_content = len(blocks) > 0
+            md_content = build_page_markdown(
+                source_name=source_file.name,
+                page_number=page_num,
+                text_blocks=blocks,
+                lang=config.lang,
+                confidence_threshold=config.confidence_threshold,
+                layout_mode=True,
+            )
+
+            md_path = ocr_dir / f"page_{page_num:03d}.md"
+            with open(md_path, "w", encoding="utf-8") as f:
+                f.write(md_content)
+
+            manifest["pages"][str(page_num)] = {
+                "ocr_status": "done",
+                "has_content": has_content,
+                "block_count": len(blocks),
+            }
+
+            progress.advance(task)
+
+    _write_manifest(manifest_path, manifest)
 
 
 def _process_single_source(

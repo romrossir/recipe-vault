@@ -24,6 +24,7 @@ class OcrConfig:
     lang: str = "fr"
     dpi: int = 300
     confidence_threshold: float = 0.7
+    use_layout: bool = True
 
 
 @dataclass
@@ -94,6 +95,7 @@ def load_config(config_dir: Path | None = None) -> Config:
             confidence_threshold=float(
                 ocr_data.get("confidence_threshold", OcrConfig.confidence_threshold)
             ),
+            use_layout=bool(ocr_data.get("use_layout", OcrConfig.use_layout)),
         ),
         work_dir=str(data.get("work_dir", Config.work_dir)),
     )
