@@ -10,7 +10,7 @@ from rich.table import Table
 from .api_client import RecipeApiClient
 from .config import load_config
 from .ollama_client import OllamaClient
-from .stages.ocr import run_ocr
+from .stages.ocr import parse_page_spec, run_ocr
 from .stages.push import run_push
 from .stages.structure import run_structure
 
@@ -31,7 +31,8 @@ def cli() -> None:
 @click.option("-o", "--output-dir", type=click.Path(path_type=Path), default=None)
 @click.option("-l", "--lang", default=None, help="OCR language (default: from config)")
 @click.option("--dpi", type=int, default=None, help="DPI for PDF rendering (default: from config)")
-def ocr(input_path: Path, output_dir: Path | None, lang: str | None, dpi: int | None) -> None:
+@click.option("-p", "--pages", default=None, help="Pages to process, e.g. '5,12,45-60,73'")
+def ocr(input_path: Path, output_dir: Path | None, lang: str | None, dpi: int | None, pages: str | None) -> None:
     """Stage 1: Run OCR on images or PDFs and produce Markdown files."""
     config = load_config(_resolve_config_dir())
 
@@ -41,8 +42,9 @@ def ocr(input_path: Path, output_dir: Path | None, lang: str | None, dpi: int | 
         config.ocr.dpi = dpi
 
     work_dir = output_dir or Path(config.work_dir)
+    page_set = parse_page_spec(pages) if pages else None
 
-    result_dir = run_ocr(input_path, config.ocr, work_dir)
+    result_dir = run_ocr(input_path, config.ocr, work_dir, pages=page_set)
 
     console.print()
     console.print("[bold green]OCR complete.[/bold green]")
@@ -103,19 +105,22 @@ def push(json_dir: Path, source_file: Path | None, dry_run: bool) -> None:
 @click.option("--no-push", is_flag=True, help="Stop after structuring (skip push)")
 @click.option("--skip-ocr", is_flag=True, help="Skip OCR, start from existing .md files")
 @click.option("--source-file", type=click.Path(exists=True, path_type=Path), default=None)
+@click.option("-p", "--pages", default=None, help="Pages to process, e.g. '5,12,45-60,73'")
 def run(
     input_path: Path,
     no_push: bool,
     skip_ocr: bool,
     source_file: Path | None,
+    pages: str | None,
 ) -> None:
     """Run the full pipeline: OCR -> manual review -> structure -> push."""
     config = load_config(_resolve_config_dir())
     work_dir = Path(config.work_dir)
+    page_set = parse_page_spec(pages) if pages else None
 
     if not skip_ocr:
         console.print("[bold]Stage 1: OCR extraction[/bold]")
-        run_ocr(input_path, config.ocr, work_dir)
+        run_ocr(input_path, config.ocr, work_dir, pages=page_set)
 
         console.print()
         console.print("[bold yellow]Stage 2: Manual review[/bold yellow]")

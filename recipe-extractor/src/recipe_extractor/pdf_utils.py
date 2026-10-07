@@ -5,24 +5,32 @@ from pathlib import Path
 import pymupdf as fitz
 
 
-def pdf_to_images(pdf_path: Path, output_dir: Path, dpi: int = 300) -> list[Path]:
+def pdf_to_images(
+    pdf_path: Path,
+    output_dir: Path,
+    dpi: int = 300,
+    pages: set[int] | None = None,
+) -> list[tuple[Path, int]]:
     output_dir.mkdir(parents=True, exist_ok=True)
     zoom = dpi / 72
     matrix = fitz.Matrix(zoom, zoom)
 
-    paths: list[Path] = []
+    result: list[tuple[Path, int]] = []
     doc = fitz.open(pdf_path)
     try:
-        for page_num in range(len(doc)):
-            page = doc[page_num]
+        for page_idx in range(len(doc)):
+            page_num = page_idx + 1
+            if pages and page_num not in pages:
+                continue
+            page = doc[page_idx]
             pix = page.get_pixmap(matrix=matrix)
-            out_path = output_dir / f"page_{page_num + 1:03d}.png"
+            out_path = output_dir / f"page_{page_num:03d}.png"
             pix.save(str(out_path))
-            paths.append(out_path)
+            result.append((out_path, page_num))
     finally:
         doc.close()
 
-    return paths
+    return result
 
 
 def pdf_page_count(pdf_path: Path) -> int:

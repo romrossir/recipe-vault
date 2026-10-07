@@ -13,6 +13,18 @@ from ..md_template import build_page_markdown
 from ..pdf_utils import pdf_to_images
 
 
+def parse_page_spec(spec: str) -> set[int]:
+    pages: set[int] = set()
+    for part in spec.split(","):
+        part = part.strip()
+        if "-" in part:
+            start, end = part.split("-", 1)
+            pages.update(range(int(start), int(end) + 1))
+        else:
+            pages.add(int(part))
+    return pages
+
+
 def _is_pdf(path: Path) -> bool:
     return path.suffix.lower() == ".pdf"
 
@@ -111,6 +123,7 @@ def run_ocr(
     input_path: Path,
     config: OcrConfig,
     work_dir: Path,
+    pages: set[int] | None = None,
 ) -> Path:
     """Run OCR on a PDF, image, or directory. Returns the work directory."""
     from paddleocr import PaddleOCR
@@ -142,7 +155,7 @@ def run_ocr(
     for source_file, is_pdf in files_to_process:
         stem = _sanitize_stem(source_file.name)
         source_work_dir = work_dir / stem
-        _process_single_source(ocr_engine, source_file, is_pdf, source_work_dir, config)
+        _process_single_source(ocr_engine, source_file, is_pdf, source_work_dir, config, pages)
 
     return work_dir
 
@@ -153,6 +166,7 @@ def _process_single_source(
     is_pdf: bool,
     work_dir: Path,
     config: OcrConfig,
+    pages: set[int] | None = None,
 ) -> None:
     source_dir = work_dir / "source"
     pages_dir = work_dir / "pages"
@@ -177,18 +191,18 @@ def _process_single_source(
     }
 
     if is_pdf:
-        image_paths = pdf_to_images(source_file, pages_dir, dpi=config.dpi)
+        image_paths = pdf_to_images(source_file, pages_dir, dpi=config.dpi, pages=pages)
         manifest["total_pages"] = len(image_paths)
     else:
-        shutil.copy2(source_file, pages_dir / source_file.name)
-        image_paths = [pages_dir / source_file.name]
+        dest_page = pages_dir / source_file.name
+        shutil.copy2(source_file, dest_page)
+        image_paths = [(dest_page, 1)]
         manifest["total_pages"] = 1
 
     with Progress() as progress:
         task = progress.add_task(f"OCR {source_file.name}", total=len(image_paths))
 
-        for idx, image_path in enumerate(image_paths):
-            page_num = idx + 1
+        for image_path, page_num in image_paths:
             blocks = _run_ocr_on_image(ocr_engine, image_path)
 
             has_content = len(blocks) > 0
