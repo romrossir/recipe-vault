@@ -31,13 +31,13 @@ et retourne UNIQUEMENT un tableau JSON valide avec exactement ces proprietes pou
         "unit": "string ou null"
       }
     ],
-    "steps": ["string"]
+    "tags": ["string (1 a 3 tags decrivant le type de recette, ex: dessert, buche, tarte, salade, vegetarien)"]
   }
 ]
 
 IMPORTANT :
 - Retranscris le texte exactement tel quel, mot pour mot.
-- Ne resume pas, ne simplifie pas, ne condense pas les etapes ou les ingredients.
+- Ne resume pas, ne simplifie pas, ne condense pas les ingredients.
 - Si le texte ne contient aucune recette, retourne un tableau vide [].
 - Ne retourne rien d'autre que le JSON.\
 """

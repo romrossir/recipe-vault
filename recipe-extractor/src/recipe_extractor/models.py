@@ -16,5 +16,5 @@ class Recipe(BaseModel):
     cook_time: str | None = None
     servings: str | None = None
     ingredients: list[Ingredient] = Field(default_factory=list)
-    steps: list[str] = Field(default_factory=list)
+    tags: list[str] = Field(default_factory=list)
     source_page: int | None = None

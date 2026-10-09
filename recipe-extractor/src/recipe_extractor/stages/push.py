@@ -32,7 +32,7 @@ def _recipe_to_api_payload(recipe: Recipe) -> dict:
             {"name": i.name, "quantity": i.quantity, "unit": i.unit}
             for i in recipe.ingredients
         ],
-        "steps": recipe.steps,
+        "tags": recipe.tags,
         "sourcePages": [recipe.source_page] if recipe.source_page else [],
     }
 
