@@ -11,6 +11,7 @@ public sealed class RecipesController : ControllerBase
 {
     private readonly IRecipeService _recipeService;
     private readonly IRecipeAssistantService _assistantService;
+    private readonly IRecipeAgentService _agentService;
     private readonly ISourceFileService _sourceFileService;
     private readonly IOcrClient _ocrClient;
     private readonly IRecipeExtractorService _extractorService;
@@ -19,6 +20,7 @@ public sealed class RecipesController : ControllerBase
     public RecipesController(
         IRecipeService recipeService,
         IRecipeAssistantService assistantService,
+        IRecipeAgentService agentService,
         ISourceFileService sourceFileService,
         IOcrClient ocrClient,
         IRecipeExtractorService extractorService,
@@ -26,6 +28,7 @@ public sealed class RecipesController : ControllerBase
     {
         _recipeService = recipeService;
         _assistantService = assistantService;
+        _agentService = agentService;
         _sourceFileService = sourceFileService;
         _ocrClient = ocrClient;
         _extractorService = extractorService;
@@ -164,6 +167,70 @@ public sealed class RecipesController : ControllerBase
         return Ok(new AskRecipeResponse(result.Answer, recipes));
     }
 
+    [HttpPost("agent")]
+    [ProducesResponseType<AgentQueryResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<AgentQueryResponse>> Agent(
+        [FromBody] AgentQueryRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(request.Query))
+            return BadRequest("Query cannot be empty.");
+
+        _logger.LogInformation("Agent: '{Query}'", request.Query);
+        var result = await _agentService.QueryAsync(request.Query, cancellationToken);
+
+        var recipes = result.Results
+            .Select(r => ToSearchResponse(r))
+            .ToList();
+
+        return Ok(new AgentQueryResponse(result.Answer, recipes));
+    }
+
+    [HttpPost("agent/stream")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task AgentStream(
+        [FromBody] AgentQueryRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(request.Query))
+        {
+            Response.StatusCode = StatusCodes.Status400BadRequest;
+            return;
+        }
+
+        Response.ContentType = "text/event-stream";
+        Response.Headers.CacheControl = "no-cache";
+        Response.Headers.Connection = "keep-alive";
+
+        _logger.LogInformation("Agent stream: '{Query}'", request.Query);
+
+        var jsonOptions = new System.Text.Json.JsonSerializerOptions
+        {
+            PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase
+        };
+
+        await foreach (var evt in _agentService.QueryStreamAsync(request.Query, cancellationToken))
+        {
+            var (eventType, data) = evt switch
+            {
+                Models.ToolCallStreamEvent tc => ("tool_call", System.Text.Json.JsonSerializer.Serialize(new { tool = tc.ToolName }, jsonOptions)),
+                Models.SearchResultsStreamEvent sr => ("search_results", System.Text.Json.JsonSerializer.Serialize(new { count = sr.Count }, jsonOptions)),
+                Models.DeltaStreamEvent d => ("delta", System.Text.Json.JsonSerializer.Serialize(new { text = d.Text }, jsonOptions)),
+                Models.FinalResultsStreamEvent fr => ("results", System.Text.Json.JsonSerializer.Serialize(
+                    fr.Results.Select(r => ToSearchResponse(r)), jsonOptions)),
+                Models.DoneStreamEvent => ("done", "{}"),
+                _ => (null, null)
+            };
+
+            if (eventType is null) continue;
+
+            await Response.WriteAsync($"event: {eventType}\ndata: {data}\n\n", cancellationToken);
+            await Response.Body.FlushAsync(cancellationToken);
+        }
+    }
+
     [HttpPost("ingest")]
     [ProducesResponseType<IReadOnlyList<RecipeResponse>>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -210,11 +277,59 @@ public sealed class RecipesController : ControllerBase
         return Ok(responses);
     }
 
+    [HttpPost("ingest/manual")]
+    [ProducesResponseType<IReadOnlyList<RecipeResponse>>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<IReadOnlyList<RecipeResponse>>> IngestManual(
+        IFormFile file,
+        [FromForm] string recipes,
+        CancellationToken cancellationToken = default)
+    {
+        if (file.Length == 0)
+            return BadRequest("File is empty.");
+
+        List<SaveRecipeRequest>? parsed;
+        try
+        {
+            parsed = System.Text.Json.JsonSerializer.Deserialize<List<SaveRecipeRequest>>(recipes,
+                new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        }
+        catch (System.Text.Json.JsonException)
+        {
+            return BadRequest("Invalid JSON in recipes field.");
+        }
+
+        if (parsed is null || parsed.Count == 0)
+            return BadRequest("At least one recipe is required.");
+
+        await using var uploadStream = file.OpenReadStream();
+        var sourceFile = await _sourceFileService.UploadAsync(file.FileName, file.ContentType, uploadStream, cancellationToken);
+
+        var responses = new List<RecipeResponse>();
+        foreach (var request in parsed)
+        {
+            var recipe = ToRecipe(request);
+            recipe.SourceFileId = sourceFile.Id;
+            if (request.SourcePages.Count > 0)
+                recipe.SourcePages = request.SourcePages.ToList();
+
+            var created = await _recipeService.CreateAsync(recipe, cancellationToken);
+            _logger.LogInformation("Ingested recipe '{Title}' from source {SourceFileId} (manual).", created.Title, sourceFile.Id);
+            responses.Add(ToResponse(created));
+        }
+
+        return Ok(responses);
+    }
+
     private static Recipe ToRecipe(SaveRecipeRequest request)
     {
         return new Recipe
         {
             Title = request.Title,
+            Author = request.Author,
+            PrepTime = request.PrepTime,
+            CookTime = request.CookTime,
+            Servings = request.Servings,
 
             Ingredients = request.Ingredients
                 .Select(i => new Ingredient
@@ -225,7 +340,7 @@ public sealed class RecipesController : ControllerBase
                 })
                 .ToList(),
 
-            Steps = request.Steps.ToList(),
+            Tags = request.Tags.ToList(),
             SourceFileId = request.SourceFileId,
             SourcePages = request.SourcePages.ToList()
         };
@@ -236,8 +351,12 @@ public sealed class RecipesController : ControllerBase
         return new RecipeResponse(
             recipe.Id!,
             recipe.Title,
+            recipe.Author,
+            recipe.PrepTime,
+            recipe.CookTime,
+            recipe.Servings,
             ToIngredientDtos(recipe.Ingredients),
-            recipe.Steps.ToList(),
+            recipe.Tags.ToList(),
             recipe.SourceFileId,
             recipe.SourcePages);
     }
@@ -247,8 +366,12 @@ public sealed class RecipesController : ControllerBase
         return new RecipeSearchResponse(
             result.Recipe.Id!,
             result.Recipe.Title,
+            result.Recipe.Author,
+            result.Recipe.PrepTime,
+            result.Recipe.CookTime,
+            result.Recipe.Servings,
             ToIngredientDtos(result.Recipe.Ingredients),
-            result.Recipe.Steps,
+            result.Recipe.Tags,
             result.Recipe.SourceFileId,
             result.Recipe.SourcePages,
             result.Score);

@@ -21,15 +21,13 @@ public sealed class RecipeAssistantService : IRecipeAssistantService
             "\n\n--- RECIPE ---\n\n",
             results.Select(r => $"""
             Title: {r.Recipe.Title}
+            Tags: {string.Join(", ", r.Recipe.Tags)}
 
             Ingredients:
             {string.Join(
                     "\n",
                     r.Recipe.Ingredients.Select(i =>
                         $"- {i.Quantity} {i.Unit} {i.Name}".Trim()))}
-
-            Steps:
-            {string.Join("\n", r.Recipe.Steps)}
             """));
 
         var systemPrompt = """

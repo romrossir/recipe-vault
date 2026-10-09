@@ -28,6 +28,10 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
     app.MapScalarApiReference();
     app.UseDeveloperExceptionPage();
+    app.UseCors(policy => policy
+        .WithOrigins("http://localhost:5173")
+        .AllowAnyHeader()
+        .AllowAnyMethod());
 }
 else
 {
@@ -35,6 +39,9 @@ else
 }
 
 app.UseHttpsRedirection();
+app.UseDefaultFiles();
+app.UseStaticFiles();
 app.MapControllers();
+app.MapFallbackToFile("index.html");
 
 app.Run();

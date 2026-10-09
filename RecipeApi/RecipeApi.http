@@ -241,6 +241,20 @@ Accept: application/json
 ### INGEST (vision) - default mode, uses vision model
 ### ========================================
 
+POST {{RecipeApi_HostAddress}}/api/recipes/ingest
+Content-Type: multipart/form-data; boundary=----Boundary
+
+------Boundary
+Content-Disposition: form-data; name="file"; filename="fdp_74.pdf"
+Content-Type: application/pdf
+
+< C:\workspace\recipe-images\fdp_74.pdf
+------Boundary--
+
+### ========================================
+### INGEST (vision) - default mode, uses vision model
+### ========================================
+
 POST {{RecipeApi_HostAddress}}/api/recipes/ingest?page=1
 Content-Type: multipart/form-data; boundary=----Boundary
 
@@ -263,6 +277,60 @@ Content-Disposition: form-data; name="file"; filename="financiers.png"
 Content-Type: image/png
 
 < C:\workspace\recipe-images\financiers.png
+------Boundary--
+
+### ========================================
+### INGEST (manual) - source file + JSON recipes, no LLM/OCR
+### ========================================
+
+POST {{RecipeApi_HostAddress}}/api/recipes/ingest/manual
+Content-Type: multipart/form-data; boundary=----Boundary
+
+------Boundary
+Content-Disposition: form-data; name="file"; filename="financiers.png"
+Content-Type: image/png
+
+< C:\workspace\recipe-images\financiers.png
+------Boundary
+Content-Disposition: form-data; name="recipes"
+
+[
+  {
+    "title": "Les financiers",
+    "ingredients": [
+      { "name": "de beurre", "quantity": "100", "unit": "g" },
+      { "name": "de farine T45", "quantity": "60", "unit": "g" },
+      { "name": "de poudre d'amande", "quantity": "80", "unit": "g" },
+      { "name": "de sucre", "quantity": "100", "unit": "g" },
+      { "name": "de fleur de sel", "quantity": "5", "unit": "g" },
+      { "name": "blancs d'oeufs", "quantity": "4", "unit": null }
+    ],
+    "steps": [
+      "Réalisez un beurre noisette puis laissez-le refroidir jusqu'à environ 40 °C. Mélangez la farine, la poudre d'amande, le sucre et la fleur de sel. Ajoutez les blancs d'œufs puis incorporez le beurre noisette jusqu'à obtenir une pâte lisse. Graissez les moules, remplissez-les aux trois quarts, lissez la surface puis tapotez légèrement les moules.",
+      "Faites cuire environ 10 minutes à 200 °C en chaleur tournante puis laissez refroidir avant de démouler."
+    ],
+    "sourcePages": [1]
+  },
+  {
+    "title": "Les muffins chocolat blanc et myrtilles",
+    "ingredients": [
+      { "name": "de myrtilles", "quantity": "200", "unit": "g" },
+      { "name": "de farine T55", "quantity": "210", "unit": "g" },
+      { "name": "de fleur de sel", "quantity": "3", "unit": "g" },
+      { "name": "de levure chimique", "quantity": "11", "unit": "g" },
+      { "name": "oeufs", "quantity": "2", "unit": null },
+      { "name": "de sucre brun", "quantity": "100", "unit": "g" },
+      { "name": "de yaourt grec", "quantity": "230", "unit": "g" },
+      { "name": "d'huile de pépins de raisin", "quantity": "35", "unit": "g" },
+      { "name": "de chocolat blanc", "quantity": "200", "unit": "g" }
+    ],
+    "steps": [
+      "Placez les myrtilles au congélateur environ 2 heures avant de commencer. Mélangez la farine, la fleur de sel et la levure. Fouettez les œufs avec le sucre pendant 1 minute. Ajoutez le yaourt puis l'huile. Incorporez les poudres et mélangez énergiquement. Ajoutez le chocolat blanc concassé et les myrtilles bien froides, puis mélangez délicatement.",
+      "Répartissez la pâte dans les moules graissés ou chemisés de caissettes en les remplissant aux deux tiers. Faites cuire 10 minutes à 200-210 °C, puis poursuivez la cuisson 10 minutes à 180 °C. Éteignez le four et laissez reposer 5 minutes sans ouvrir la porte."
+    ],
+    "sourcePages": [1]
+  }
+]
 ------Boundary--
 
 ### ========================================

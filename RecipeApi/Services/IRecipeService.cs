@@ -55,4 +55,10 @@ public interface IRecipeService
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Recipes ranked by similarity score, highest first.</returns>
     Task<IReadOnlyList<RecipeSearchResult>> SearchAsync(string query, int limit, CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<RecipeSearchResult>> SearchByIngredientsAsync(
+        IReadOnlyList<string> ingredients, bool matchAll, int limit, CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<RecipeSearchResult>> SearchByTagsAsync(
+        IReadOnlyList<string> tags, int limit, CancellationToken cancellationToken = default);
 }

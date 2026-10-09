@@ -1,0 +1,346 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: #f5f5f5;
+  color: #333;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.app {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Layout */
+.main-content {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.chat-panel {
+  width: 480px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid #e0e0e0;
+  background: white;
+}
+
+.viewer-panel {
+  flex: 1;
+  min-width: 0;
+  overflow: auto;
+}
+
+/* Chat thread */
+.chat-thread {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem;
+}
+
+.chat-welcome {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: #888;
+}
+
+.chat-welcome h1 {
+  font-size: 1.6rem;
+  color: #2c3e50;
+  margin-bottom: 0.5rem;
+}
+
+.chat-welcome p {
+  font-size: 0.95rem;
+}
+
+/* Messages */
+.chat-msg {
+  margin-bottom: 0.75rem;
+}
+
+.chat-bubble {
+  padding: 0.6rem 1rem;
+  border-radius: 12px;
+  max-width: 90%;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.user-bubble {
+  background: #3498db;
+  color: white;
+  margin-left: auto;
+  border-bottom-right-radius: 4px;
+}
+
+.agent-bubble {
+  background: #f0f0f0;
+  color: #333;
+  border-bottom-left-radius: 4px;
+  white-space: normal;
+}
+
+.agent-bubble p { margin: 0.3rem 0; }
+.agent-bubble p:first-child { margin-top: 0; }
+.agent-bubble p:last-child { margin-bottom: 0; }
+.agent-bubble ul, .agent-bubble ol { margin: 0.3rem 0; padding-left: 1.4rem; }
+.agent-bubble li { margin: 0.15rem 0; }
+.agent-bubble strong { font-weight: 600; }
+.agent-bubble em { font-style: italic; }
+.agent-bubble code { background: #e0e0e0; padding: 0.1rem 0.3rem; border-radius: 3px; font-size: 0.85em; }
+
+.chat-status {
+  font-size: 0.85rem;
+  color: #7d6608;
+  padding: 0.3rem 0.75rem;
+  background: #fef9e7;
+  border-radius: 8px;
+  display: inline-block;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* Search results count */
+.chat-search-results {
+  font-size: 0.8rem;
+  color: #27ae60;
+  padding: 0.2rem 0.75rem;
+}
+
+/* Inline results */
+.chat-results {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+/* Recipe card */
+.recipe-card {
+  background: #fafafa;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  padding: 0.6rem 0.75rem;
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.recipe-card:hover {
+  border-color: #3498db;
+}
+
+.recipe-card.selected {
+  border-color: #3498db;
+  box-shadow: 0 0 0 1px #3498db;
+}
+
+.recipe-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.recipe-card-header h3 {
+  font-size: 0.95rem;
+  margin: 0;
+}
+
+.recipe-card .score {
+  font-size: 0.75rem;
+  color: #888;
+  font-weight: 500;
+}
+
+.recipe-card .author {
+  font-size: 0.8rem;
+  color: #666;
+  margin-top: 0.15rem;
+}
+
+.recipe-meta {
+  display: flex;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  color: #888;
+  margin-top: 0.2rem;
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-top: 0.3rem;
+}
+
+.tag {
+  display: inline-block;
+  background: #e8f4fd;
+  color: #2980b9;
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 500;
+}
+
+.ingredient-count {
+  font-size: 0.75rem;
+  color: #aaa;
+  margin-top: 0.2rem;
+}
+
+/* Chat bottom bar */
+.chat-bar {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border-top: 1px solid #e0e0e0;
+  background: white;
+  align-items: center;
+}
+
+.chat-reset {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  font-size: 1.3rem;
+  line-height: 1;
+  background: #ecf0f1;
+  color: #555;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.chat-reset:hover:not(:disabled) {
+  background: #ddd;
+}
+
+.chat-reset:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Chat input */
+.chat-input {
+  display: flex;
+  gap: 0.5rem;
+  flex: 1;
+}
+
+.chat-input input {
+  flex: 1;
+  padding: 0.6rem 0.75rem;
+  font-size: 0.95rem;
+  border: 2px solid #ddd;
+  border-radius: 8px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.chat-input input:focus {
+  border-color: #3498db;
+}
+
+.chat-input button {
+  padding: 0.6rem 1.2rem;
+  font-size: 0.95rem;
+  background: #3498db;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.chat-input button:hover:not(:disabled) {
+  background: #2980b9;
+}
+
+.chat-input button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Source viewer */
+.source-viewer {
+  background: white;
+  min-height: 100%;
+}
+
+.source-viewer.empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #aaa;
+  height: 100%;
+}
+
+.pdf-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 0.75rem;
+  border-bottom: 1px solid #eee;
+  position: sticky;
+  top: 0;
+  background: white;
+  z-index: 1;
+}
+
+.pdf-controls button {
+  padding: 0.4rem 0.8rem;
+  font-size: 1rem;
+  background: #ecf0f1;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.pdf-controls button:hover:not(:disabled) {
+  background: #ddd;
+}
+
+.pdf-controls button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.pdf-document {
+  display: flex;
+  justify-content: center;
+  padding: 1rem;
+  overflow: auto;
+}
+
+.image-viewer {
+  display: flex;
+  justify-content: center;
+  padding: 1rem;
+  overflow: auto;
+}
+
+.image-viewer img {
+  max-width: 100%;
+  height: auto;
+}

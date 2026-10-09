@@ -81,7 +81,7 @@ public sealed class SourceFileService : ISourceFileService
 
     public string? GetStoredFilePath(string storedFileName)
     {
-        var filePath = Path.Combine(_settings.StoragePath, storedFileName);
+        var filePath = Path.GetFullPath(Path.Combine(_settings.StoragePath, storedFileName));
         return File.Exists(filePath) ? filePath : null;
     }
 }

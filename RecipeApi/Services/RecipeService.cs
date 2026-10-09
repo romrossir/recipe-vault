@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
@@ -132,6 +133,44 @@ public sealed class RecipeService : IRecipeService
                 return new RecipeSearchResult(recipe, score);
             })
             .ToList();
+    }
+
+    public async Task<IReadOnlyList<RecipeSearchResult>> SearchByIngredientsAsync(
+        IReadOnlyList<string> ingredients, bool matchAll, int limit, CancellationToken cancellationToken = default)
+    {
+        var filters = ingredients
+            .Select(ing => Builders<Recipe>.Filter.Regex(
+                "Ingredients.Name",
+                new BsonRegularExpression(Regex.Escape(ing), "i")))
+            .ToList();
+
+        var filter = matchAll
+            ? Builders<Recipe>.Filter.And(filters)
+            : Builders<Recipe>.Filter.Or(filters);
+
+        var recipes = await _recipes
+            .Find(filter)
+            .Limit(limit)
+            .ToListAsync(cancellationToken);
+
+        return recipes.Select(r => new RecipeSearchResult(r, 1.0)).ToList();
+    }
+
+    public async Task<IReadOnlyList<RecipeSearchResult>> SearchByTagsAsync(
+        IReadOnlyList<string> tags, int limit, CancellationToken cancellationToken = default)
+    {
+        var regexTags = tags
+            .Select(t => new BsonRegularExpression($"^{Regex.Escape(t)}$", "i"))
+            .ToList();
+
+        var filter = Builders<Recipe>.Filter.AnyIn("Tags", regexTags);
+
+        var recipes = await _recipes
+            .Find(filter)
+            .Limit(limit)
+            .ToListAsync(cancellationToken);
+
+        return recipes.Select(r => new RecipeSearchResult(r, 1.0)).ToList();
     }
 
     private async Task GenerateEmbeddingAsync(Recipe recipe, CancellationToken cancellationToken)

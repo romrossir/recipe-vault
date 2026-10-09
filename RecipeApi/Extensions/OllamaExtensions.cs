@@ -26,6 +26,13 @@ public static class OllamaExtensions
             client.Timeout = TimeSpan.FromMinutes(5);
         });
 
+        services.AddHttpClient<IRecipeAgentService, RecipeAgentService>(
+            client =>
+            {
+                client.BaseAddress = new Uri(settings.BaseUrl);
+                client.Timeout = TimeSpan.FromMinutes(5);
+            });
+
         services.AddScoped<IRecipeAssistantService, RecipeAssistantService>();
         services.AddScoped<IRecipeExtractorService, RecipeExtractorService>();
 

@@ -12,12 +12,17 @@ public static class RecipeSearchTextBuilder
                 .Select(i => i.Name)
                 .Where(name => !string.IsNullOrWhiteSpace(name)));
 
+        var tags = string.Join(", ", recipe.Tags.Where(t => !string.IsNullOrWhiteSpace(t)));
+
         return $"""
         Title:
         {recipe.Title}
 
         Ingredients:
         {ingredients}
+
+        Tags:
+        {tags}
         """;
     }
 }

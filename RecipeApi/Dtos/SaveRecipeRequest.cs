@@ -8,9 +8,17 @@ public sealed class SaveRecipeRequest
     [StringLength(200)]
     public required string Title { get; init; }
 
+    public string? Author { get; init; }
+
+    public string? PrepTime { get; init; }
+
+    public string? CookTime { get; init; }
+
+    public string? Servings { get; init; }
+
     public IReadOnlyList<IngredientDto> Ingredients { get; init; } = [];
 
-    public IReadOnlyList<string> Steps { get; init; } = [];
+    public IReadOnlyList<string> Tags { get; init; } = [];
 
     public string? SourceFileId { get; init; }
 

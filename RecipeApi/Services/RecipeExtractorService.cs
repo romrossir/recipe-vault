@@ -27,10 +27,10 @@ public sealed class RecipeExtractorService : IRecipeExtractorService
                 "name": "string"
               }
             ],
-            "steps": ["string"]
+            "tags": ["string (1 à 3 tags décrivant le type de recette, ex: dessert, bûche, tarte, salade, végétarien)"]
           }
         ]
-        IMPORTANT : retranscris le texte exactement tel quel, mot pour mot. Ne résume pas, ne simplifie pas, ne condense pas les étapes ou les ingrédients.
+        IMPORTANT : retranscris le texte exactement tel quel, mot pour mot. Ne résume pas, ne simplifie pas, ne condense pas les ingrédients.
         S'il n'y a aucune recette, retourne un tableau vide [].
         Ne retourne rien d'autre que le JSON.
         """;
@@ -48,10 +48,10 @@ public sealed class RecipeExtractorService : IRecipeExtractorService
                 "name": "string"
               }
             ],
-            "steps": ["string"]
+            "tags": ["string (1 à 3 tags décrivant le type de recette, ex: dessert, bûche, tarte, salade, végétarien)"]
           }
         ]
-        IMPORTANT : retranscris le texte exactement tel quel, mot pour mot. Ne résume pas, ne simplifie pas, ne condense pas les étapes ou les ingrédients.
+        IMPORTANT : retranscris le texte exactement tel quel, mot pour mot. Ne résume pas, ne simplifie pas, ne condense pas les ingrédients.
         S'il n'y a aucune recette sur la page, retourne un tableau vide [].
         Ne retourne rien d'autre que le JSON.
         """;
@@ -143,6 +143,10 @@ public sealed class RecipeExtractorService : IRecipeExtractorService
         return new Recipe
         {
             Title = extracted.Title ?? "Sans titre",
+            Author = extracted.Author,
+            PrepTime = extracted.PrepTime,
+            CookTime = extracted.CookTime,
+            Servings = extracted.Servings,
             Ingredients = extracted.Ingredients
                 .Where(i => !string.IsNullOrWhiteSpace(i.Name))
                 .Select(i => new Ingredient
@@ -152,7 +156,7 @@ public sealed class RecipeExtractorService : IRecipeExtractorService
                     Unit = i.Unit
                 })
                 .ToList(),
-            Steps = extracted.Steps
+            Tags = extracted.Tags
         };
     }
 
@@ -182,8 +186,12 @@ public sealed class RecipeExtractorService : IRecipeExtractorService
     private sealed class ExtractedRecipe
     {
         public string? Title { get; set; }
+        public string? Author { get; set; }
+        public string? PrepTime { get; set; }
+        public string? CookTime { get; set; }
+        public string? Servings { get; set; }
         public List<ExtractedIngredient> Ingredients { get; set; } = [];
-        public List<string> Steps { get; set; } = [];
+        public List<string> Tags { get; set; } = [];
     }
 
     private sealed class ExtractedIngredient
